@@ -15,7 +15,7 @@ type VideoListResponse struct {
 	VideoList []Video `json:"video_list"`
 }
 
-// Publish check token then save upload file to public directory
+// 发布视频行为，需要用户是登录状态
 func Publish(c *gin.Context) {
 	token := c.PostForm("token")
 	// 判断是否处于登录状态，不是则直接返回，取消发布视频
@@ -49,8 +49,9 @@ func Publish(c *gin.Context) {
 
 	// 获取视频标题
 	title := c.PostForm("title")
+	dbMutex.Lock()
 	// 将视频信息存入数据库中，投稿时间为当前时间
-	newVideoDao := VideoDao{
+	globalDb.Create(&VideoDao{
 		AuthorId:      user.Id,
 		PlayUrl:       serverUrl + "static/" + finalName,
 		FavoriteCount: 0,
@@ -58,8 +59,8 @@ func Publish(c *gin.Context) {
 		IsFavorite:    false,
 		Title:         title,
 		PublishTime:   time.Now().Unix(),
-	}
-	globalDb.Create(&newVideoDao)
+	})
+	dbMutex.Unlock()
 
 	c.JSON(http.StatusOK, Response{
 		StatusCode: 0,
@@ -67,7 +68,6 @@ func Publish(c *gin.Context) {
 	})
 }
 
-// PublishList all users have same publish video list
 // 返回发布作品列表
 func PublishList(c *gin.Context) {
 	token := c.Query("token")
@@ -77,7 +77,9 @@ func PublishList(c *gin.Context) {
 
 	// 从数据库中根据用户id获取这个用户发布的视频列表
 	var videoDaoList []VideoDao
+	dbMutex.Lock()
 	globalDb.Where("author_id = ?", userId).Find(&videoDaoList)
+	dbMutex.Unlock()
 
 	// 获取这个用户点赞的视频列表
 	favoriteVideoInfo := GetFavoriteVideoByToken(token)

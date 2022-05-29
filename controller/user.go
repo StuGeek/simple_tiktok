@@ -2,6 +2,7 @@ package controller
 
 import (
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -45,7 +46,9 @@ func Register(c *gin.Context) {
 			IsFollow:      false,
 			Token:         token,
 		}
+		dbMutex.Lock()
 		globalDb.Create(&newUserDao)
+		dbMutex.Unlock()
 
 		// 记录用户token与用户User结构体的对应关系，插入数据库后，表中id为主键，可直接获取作为用户id
 		usersLoginInfo[token] = User{
@@ -92,9 +95,14 @@ func Login(c *gin.Context) {
 // 用户登录时，获取登录用户的信息
 func UserInfo(c *gin.Context) {
 	token := c.Query("token")
+	userIdStr := c.Query("user_id")
+
+	userId, _ := strconv.ParseInt(userIdStr, 10, 64)
 
 	// 如果用户存在，从usersLoginInfo中根据token取出用户信息并返回
 	if user, exist := usersLoginInfo[token]; exist {
+		// 初始化账号usersLoginInfo表，更新当前用户的关注状态
+		InitUserInfoById(userId)
 		// 刷新这个用户获取的视频信息
 		InitVideoInfo(time.Now().Unix(), token)
 
