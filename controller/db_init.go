@@ -38,7 +38,7 @@ func (VideoDao) TableName() string {
 	return "videos"
 }
 
-// 数据库中的喜欢视频信息表favorite_videos的基本元素
+// 数据库中的点赞视频信息表favorite_videos的基本元素
 type FavoriteVideoDao struct {
 	Token   string `json:"token"`    // 用户的token
 	VideoId int64  `json:"video_id"` // 用户喜欢的视频Id
