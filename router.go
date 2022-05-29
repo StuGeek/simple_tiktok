@@ -7,8 +7,10 @@ import (
 
 func initRouter(r *gin.Engine) {
 	// public directory is used to serve static resources
+	// 访问localhost:8080/static/{file}可获取./public目录下的file文件
 	r.Static("/static", "./public")
 
+	// 对路由创建/douyin分组，接口方法都写在这个分组中
 	apiRouter := r.Group("/douyin")
 
 	// basic apis

@@ -10,6 +10,24 @@ var DemoVideos = []Video{
 		CommentCount:  0,
 		IsFavorite:    false,
 	},
+	{
+		Id:            2,
+		Author:        DemoUser,
+		PlayUrl:       "https://gossv.cfp.cn/videos/mts_videos/medium/VCG42N1388510942.mp4",
+		CoverUrl:      "https://gossv.cfp.cn/videos/snapshot/VCG42N1388510942_00001.jpg",
+		FavoriteCount: 0,
+		CommentCount:  0,
+		IsFavorite:    false,
+	},
+	{
+		Id:            3,
+		Author:        DemoUser,
+		PlayUrl:       "https://gossv.cfp.cn/videos/mts_videos/medium/VCG2218026592.mp4",
+		CoverUrl:      "https://gossv.cfp.cn/videos/snapshot/VCG2218026592_00001.jpg",
+		FavoriteCount: 0,
+		CommentCount:  0,
+		IsFavorite:    false,
+	},
 }
 
 var DemoComments = []Comment{
