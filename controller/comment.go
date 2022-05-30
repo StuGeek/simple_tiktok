@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/RaymondCode/simple-demo/repository"
 	"github.com/gin-gonic/gin"
 )
 
@@ -39,7 +40,7 @@ func CommentAction(c *gin.Context) {
 			publishTime := now.Unix()
 
 			// 向评论信息表中插入相应的评论记录
-			newCommentDao := CommentDao{
+			newCommentDao := repository.CommentDao{
 				UserId:      usersLoginInfo[token].Id,
 				VideoId:     videoId,
 				Content:     text,
@@ -47,7 +48,7 @@ func CommentAction(c *gin.Context) {
 				PublishTime: publishTime,
 			}
 
-			var video VideoDao
+			var video repository.VideoDao
 
 			dbMutex.Lock()
 			globalDb.Create(&newCommentDao)
@@ -69,11 +70,11 @@ func CommentAction(c *gin.Context) {
 			// commentId, _ := strconv.ParseInt(commentIdStr, 10, 64)
 			// globalDb.Where("id = ?", commentId).Delete(&CommentDao{})
 
-			var video VideoDao
+			var video repository.VideoDao
 
 			dbMutex.Lock()
 			// 如果是取消评论，则从评论信息表中删除相应的记录，并更新视频信息表中相应视频的评论数减一
-			globalDb.Where("user_id = ? and video_id = ?", usersLoginInfo[token].Id, videoId).Delete(&CommentDao{})
+			globalDb.Where("user_id = ? and video_id = ?", usersLoginInfo[token].Id, videoId).Delete(&repository.CommentDao{})
 			globalDb.Where("id = ?", videoId).First(&video).Update("comment_count", video.CommentCount-1)
 			dbMutex.Unlock()
 		}
@@ -90,7 +91,7 @@ func CommentList(c *gin.Context) {
 	videoId, _ := strconv.ParseInt(videoIdStr, 10, 64)
 
 	// 从评论信息表中根据视频id获取按发布时间倒序的所有评论
-	var comments []CommentDao
+	var comments []repository.CommentDao
 	dbMutex.Lock()
 	globalDb.Where("video_id = ?", videoId).Order("publish_time desc").Find(&comments)
 	dbMutex.Unlock()

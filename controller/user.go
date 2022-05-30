@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/RaymondCode/simple-demo/repository"
 	"github.com/gin-gonic/gin"
 )
 
@@ -39,7 +40,7 @@ func Register(c *gin.Context) {
 		})
 	} else {
 		// 否则创建新用户信息并插入数据库的users表中
-		newUserDao := UserDao{
+		newUserDao := repository.UserDao{
 			Name:          username,
 			FollowCount:   0,
 			FollowerCount: 0,
@@ -115,5 +116,49 @@ func UserInfo(c *gin.Context) {
 		c.JSON(http.StatusOK, UserResponse{
 			Response: Response{StatusCode: 1, StatusMsg: "User doesn't exist"},
 		})
+	}
+}
+
+// 初始化账号信息
+func InitUserInfo() {
+	// 获取所有账号信息
+	var users []repository.UserDao
+
+	dbMutex.Lock()
+	globalDb.Find(&users)
+	dbMutex.Unlock()
+
+	// 遍历所有账号
+	for _, user := range users {
+		// 存储每个账号的token和User的对应关系
+		usersLoginInfo[user.Token] = User{
+			Id:            user.Id,
+			Name:          user.Name,
+			FollowCount:   user.FollowCount,
+			FollowerCount: user.FollowerCount,
+			IsFollow:      user.IsFollow,
+		}
+		// 存储每个账号的Id和Token的对应关系
+		userIdToToken[user.Id] = user.Token
+	}
+}
+
+// 根据登录用户的Id初始化账号信息，主要是设置这个账号对每个用户的IsFollow属性
+func InitUserInfoById(userId int64) {
+	followList := GetFollowById(userId)
+
+	// 遍历所有存储在usersLoginInfo中账号信息
+	for token, user := range usersLoginInfo {
+		// 判断登录用户是否关注了这个用户
+		_, isFollow := followList[user.Id]
+
+		// 存储每个账号的token和User的对应关系，设置IsFollow属性
+		usersLoginInfo[token] = User{
+			Id:            user.Id,
+			Name:          user.Name,
+			FollowCount:   user.FollowCount,
+			FollowerCount: user.FollowerCount,
+			IsFollow:      isFollow,
+		}
 	}
 }

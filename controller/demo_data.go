@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"github.com/RaymondCode/simple-demo/repository"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
@@ -14,17 +15,17 @@ func InitDemoData() {
 		panic("failed to connect database")
 	}
 
-	globalDb.AutoMigrate(&UserDao{})
-	globalDb.AutoMigrate(&VideoDao{})
-	globalDb.AutoMigrate(&FavoriteVideoDao{})
-	globalDb.AutoMigrate(&CommentDao{})
-	globalDb.AutoMigrate(&FollowDao{})
+	globalDb.AutoMigrate(&repository.UserDao{})
+	globalDb.AutoMigrate(&repository.VideoDao{})
+	globalDb.AutoMigrate(&repository.FavoriteVideoDao{})
+	globalDb.AutoMigrate(&repository.CommentDao{})
+	globalDb.AutoMigrate(&repository.FollowDao{})
 
-	globalDb.Delete(&UserDao{})
-	globalDb.Delete(&VideoDao{})
-	globalDb.Delete(&FavoriteVideoDao{})
-	globalDb.Delete(&CommentDao{})
-	globalDb.Delete(&FollowDao{})
+	globalDb.Where("1 = 1").Delete(&repository.UserDao{})
+	globalDb.Where("1 = 1").Delete(&repository.VideoDao{})
+	globalDb.Where("1 = 1").Delete(&repository.FavoriteVideoDao{})
+	globalDb.Where("1 = 1").Delete(&repository.CommentDao{})
+	globalDb.Where("1 = 1").Delete(&repository.FollowDao{})
 
 	globalDb.Create(&DemoUser)
 	globalDb.Create(&DemoVideos)
@@ -35,50 +36,50 @@ func InitDemoData() {
 	InitUserInfo()
 }
 
-var DemoUser = []UserDao{
+var DemoUser = []repository.UserDao{
 	{
 		Id:            1,
-		Name:          "user@1.com",
+		Name:          "user1@1.com",
 		FollowCount:   3,
 		FollowerCount: 2,
 		IsFollow:      false,
-		Token:         "user@1.com111111",
+		Token:         "user1@1.com111111",
 	},
 	{
 		Id:            2,
-		Name:          "user@2.com",
+		Name:          "user2@2.com",
 		FollowCount:   2,
 		FollowerCount: 2,
 		IsFollow:      false,
-		Token:         "user@2.com222222",
+		Token:         "user2@2.com222222",
 	},
 	{
 		Id:            3,
-		Name:          "user@3.com",
+		Name:          "user3@3.com",
 		FollowCount:   2,
 		FollowerCount: 2,
 		IsFollow:      false,
-		Token:         "user@3.com333333",
+		Token:         "user3@3.com333333",
 	},
 	{
 		Id:            4,
-		Name:          "user@4.com",
+		Name:          "user4@4.com",
 		FollowCount:   2,
 		FollowerCount: 3,
 		IsFollow:      false,
-		Token:         "user@4.com444444",
+		Token:         "user4@4.com444444",
 	},
 	{
 		Id:            5,
-		Name:          "user@5.com",
+		Name:          "user5@5.com",
 		FollowCount:   1,
 		FollowerCount: 1,
 		IsFollow:      false,
-		Token:         "user@5.com555555",
+		Token:         "user5@5.com555555",
 	},
 }
 
-var DemoVideos = []VideoDao{
+var DemoVideos = []repository.VideoDao{
 	{
 		Id:            1,
 		AuthorId:      DemoUser[0].Id,
@@ -422,31 +423,31 @@ var DemoVideos = []VideoDao{
 	},
 }
 
-var DemoFavoriteVideos = []FavoriteVideoDao{
-	{Token: "user@3.com333333", VideoId: 31},
-	{Token: "user@4.com444444", VideoId: 31},
-	{Token: "user@5.com555555", VideoId: 31},
-	{Token: "user@1.com111111", VideoId: 30},
-	{Token: "user@2.com222222", VideoId: 30},
-	{Token: "user@3.com333333", VideoId: 29},
-	{Token: "user@4.com444444", VideoId: 29},
-	{Token: "user@5.com555555", VideoId: 29},
-	{Token: "user@3.com333333", VideoId: 28},
-	{Token: "user@4.com444444", VideoId: 28},
-	{Token: "user@1.com111111", VideoId: 27},
-	{Token: "user@2.com222222", VideoId: 26},
-	{Token: "user@3.com333333", VideoId: 25},
-	{Token: "user@4.com444444", VideoId: 24},
-	{Token: "user@5.com555555", VideoId: 23},
-	{Token: "user@3.com333333", VideoId: 4},
-	{Token: "user@4.com444444", VideoId: 3},
-	{Token: "user@5.com555555", VideoId: 2},
-	{Token: "user@1.com111111", VideoId: 1},
-	{Token: "user@2.com222222", VideoId: 1},
-	{Token: "user@4.com444444", VideoId: 1},
+var DemoFavoriteVideos = []repository.FavoriteVideoDao{
+	{Token: "user3@3.com333333", VideoId: 31},
+	{Token: "user4@4.com444444", VideoId: 31},
+	{Token: "user5@5.com555555", VideoId: 31},
+	{Token: "user1@1.com111111", VideoId: 30},
+	{Token: "user2@2.com222222", VideoId: 30},
+	{Token: "user3@3.com333333", VideoId: 29},
+	{Token: "user4@4.com444444", VideoId: 29},
+	{Token: "user5@5.com555555", VideoId: 29},
+	{Token: "user3@3.com333333", VideoId: 28},
+	{Token: "user4@4.com444444", VideoId: 28},
+	{Token: "user1@1.com111111", VideoId: 27},
+	{Token: "user2@2.com222222", VideoId: 26},
+	{Token: "user3@3.com333333", VideoId: 25},
+	{Token: "user4@4.com444444", VideoId: 24},
+	{Token: "user5@5.com555555", VideoId: 23},
+	{Token: "user3@3.com333333", VideoId: 4},
+	{Token: "user4@4.com444444", VideoId: 3},
+	{Token: "user5@5.com555555", VideoId: 2},
+	{Token: "user1@1.com111111", VideoId: 1},
+	{Token: "user2@2.com222222", VideoId: 1},
+	{Token: "user4@4.com444444", VideoId: 1},
 }
 
-var DemoComments = []CommentDao{
+var DemoComments = []repository.CommentDao{
 	{
 		Id:          1,
 		UserId:      DemoUser[0].Id,
@@ -529,7 +530,7 @@ var DemoComments = []CommentDao{
 	},
 }
 
-var DemoFollows = []FollowDao{
+var DemoFollows = []repository.FollowDao{
 	{UserId: DemoUser[0].Id, ToUserId: DemoUser[1].Id},
 	{UserId: DemoUser[0].Id, ToUserId: DemoUser[2].Id},
 	{UserId: DemoUser[0].Id, ToUserId: DemoUser[3].Id},

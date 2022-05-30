@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/RaymondCode/simple-demo/repository"
 	"github.com/gin-gonic/gin"
 )
 
@@ -26,8 +27,8 @@ func RelationAction(c *gin.Context) {
 
 		// 从存储账号信息map中根据token获取登录用户的Id
 		userId := usersLoginInfo[token].Id
-		var user UserDao
-		var toUser UserDao
+		var user repository.UserDao
+		var toUser repository.UserDao
 
 		var isFollow bool
 
@@ -35,7 +36,7 @@ func RelationAction(c *gin.Context) {
 		if actionType == "1" {
 			dbMutex.Lock()
 			// 在关注信息表中创建相应的记录
-			globalDb.Create(&FollowDao{
+			globalDb.Create(&repository.FollowDao{
 				UserId:   userId,
 				ToUserId: toUserId,
 			})
@@ -50,7 +51,7 @@ func RelationAction(c *gin.Context) {
 		} else if actionType == "2" {
 			dbMutex.Lock()
 			// 如果是取消关注行为，从关注信息表中删除相应的记录
-			globalDb.Where("user_id = ? and to_user_id = ?", userId, toUserId).Delete(&FollowDao{})
+			globalDb.Where("user_id = ? and to_user_id = ?", userId, toUserId).Delete(&repository.FollowDao{})
 			// 在用户信息表中更新关注用户和被关注用户的关注数和被关注数
 			globalDb.Where("id = ?", userId).First(&user).Update("follow_count", user.FollowCount-1)
 			globalDb.Where("id = ?", toUserId).First(&toUser).Update("follower_count", toUser.FollowerCount-1)
@@ -90,7 +91,7 @@ func FollowList(c *gin.Context) {
 	userId, _ := strconv.ParseInt(userIdStr, 10, 64)
 
 	// 获取所有这个用户关注的用户
-	var follows []FollowDao
+	var follows []repository.FollowDao
 	dbMutex.Lock()
 	globalDb.Where("user_id = ?", userId).Find(&follows)
 	dbMutex.Unlock()
@@ -116,7 +117,7 @@ func FollowerList(c *gin.Context) {
 	userId, _ := strconv.ParseInt(userIdStr, 10, 64)
 
 	// 获取所有关注这个用户的用户
-	var follows []FollowDao
+	var follows []repository.FollowDao
 	dbMutex.Lock()
 	globalDb.Where("to_user_id = ?", userId).Find(&follows)
 	dbMutex.Unlock()
@@ -133,4 +134,22 @@ func FollowerList(c *gin.Context) {
 		},
 		UserList: userList,
 	})
+}
+
+// 根据用户的Id获取存储关注的用户Id的map
+func GetFollowById(userId int64) map[int64]struct{} {
+	// 从follows关注信息表中查询出这个用户关注的所有用户的Id
+	var follows []repository.FollowDao
+	dbMutex.Lock()
+	globalDb.Where("user_id = ?", userId).Find(&follows)
+	dbMutex.Unlock()
+
+	var followsInfo = make(map[int64]struct{})
+
+	// 存储关注用户的用户Id
+	for _, follow := range follows {
+		followsInfo[follow.ToUserId] = struct{}{}
+	}
+
+	return followsInfo
 }

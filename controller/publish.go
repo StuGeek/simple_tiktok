@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/RaymondCode/simple-demo/repository"
 	"github.com/gin-gonic/gin"
 )
 
@@ -51,7 +52,7 @@ func Publish(c *gin.Context) {
 	title := c.PostForm("title")
 	dbMutex.Lock()
 	// 将视频信息存入数据库中，投稿时间为当前时间
-	globalDb.Create(&VideoDao{
+	globalDb.Create(&repository.VideoDao{
 		AuthorId:      user.Id,
 		PlayUrl:       serverUrl + "static/" + finalName,
 		FavoriteCount: 0,
@@ -76,7 +77,7 @@ func PublishList(c *gin.Context) {
 	userId, _ := strconv.ParseInt(userIdStr, 10, 64)
 
 	// 从数据库中根据用户id获取这个用户发布的视频列表
-	var videoDaoList []VideoDao
+	var videoDaoList []repository.VideoDao
 	dbMutex.Lock()
 	globalDb.Where("author_id = ?", userId).Find(&videoDaoList)
 	dbMutex.Unlock()
