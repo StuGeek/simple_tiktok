@@ -1,10 +1,11 @@
 package controller
 
-var serverUrl = "http://172.26.48.178:8080/" // 服务器的url
+var serverUrl = "http://172.19.58.184:8080/" // 服务器的url
 
-var sql_username = "root"        // 数据库的用户名
-var sql_password = "123456"      // 数据库的密码
-var sql_dbname = "simple_tiktok" // 使用的数据库名
+var sqlUsername = "root"                 // 数据库的用户名
+var sqlPassword = "123456"               // 数据库的密码
+var sqlDBName = "simple_tiktok"          // 使用的数据库名
+var sqlDemoDBName = "demo_simple_tiktok" // 导入demo数据使用的数据库名
 
 type Response struct {
 	StatusCode int32  `json:"status_code"`

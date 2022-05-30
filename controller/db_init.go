@@ -80,7 +80,7 @@ var (
 
 // 初始化数据库，进行自动迁移或建表，初始化用户信息map
 func InitDB() {
-	dsn := sql_username + ":" + sql_password + "@tcp(127.0.0.1:3306)/" + sql_dbname + "?charset=utf8mb4&parseTime=True&loc=Local"
+	dsn := sqlUsername + ":" + sqlPassword + "@tcp(127.0.0.1:3306)/" + sqlDBName + "?charset=utf8mb4&parseTime=True&loc=Local"
 	var err error
 	globalDb, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
@@ -88,8 +88,8 @@ func InitDB() {
 	}
 
 	globalDb.AutoMigrate(&UserDao{})
-	globalDb.AutoMigrate(&FavoriteVideoDao{})
 	globalDb.AutoMigrate(&VideoDao{})
+	globalDb.AutoMigrate(&FavoriteVideoDao{})
 	globalDb.AutoMigrate(&CommentDao{})
 	globalDb.AutoMigrate(&FollowDao{})
 

@@ -10,8 +10,8 @@ import (
 
 // usersLoginInfo use map to store user info, and key is username+password for demo
 // user data will be cleared every time the server starts
-var usersLoginInfo = map[string]User{} // 存储用户token与用户User结构体的对应
-var userIdToToken = map[int64]string{} // 存储用户Id与用户token的对应
+var usersLoginInfo = map[string]User{} // 存储用户token与用户User结构体的对应关系
+var userIdToToken = map[int64]string{} // 存储用户Id与用户token的对应关系
 
 type UserLoginResponse struct {
 	Response
