@@ -34,28 +34,28 @@ func RelationAction(c *gin.Context) {
 
 		// 如果是关注行为
 		if actionType == "1" {
-			dbMutex.Lock()
+			repository.DBMutex.Lock()
 			// 在关注信息表中创建相应的记录
-			globalDb.Create(&repository.FollowDao{
+			repository.GlobalDB.Create(&repository.FollowDao{
 				UserId:   userId,
 				ToUserId: toUserId,
 			})
 			// 在用户信息表中更新关注用户和被关注用户的关注数和被关注数
-			globalDb.Where("id = ?", userId).First(&user).Update("follow_count", user.FollowCount+1)
-			globalDb.Where("id = ?", toUserId).First(&toUser).Update("follower_count", toUser.FollowerCount+1)
-			dbMutex.Unlock()
+			repository.GlobalDB.Where("id = ?", userId).First(&user).Update("follow_count", user.FollowCount+1)
+			repository.GlobalDB.Where("id = ?", toUserId).First(&toUser).Update("follower_count", toUser.FollowerCount+1)
+			repository.DBMutex.Unlock()
 
 			// 设置是关注行为
 			isFollow = true
 
 		} else if actionType == "2" {
-			dbMutex.Lock()
+			repository.DBMutex.Lock()
 			// 如果是取消关注行为，从关注信息表中删除相应的记录
-			globalDb.Where("user_id = ? and to_user_id = ?", userId, toUserId).Delete(&repository.FollowDao{})
+			repository.GlobalDB.Where("user_id = ? and to_user_id = ?", userId, toUserId).Delete(&repository.FollowDao{})
 			// 在用户信息表中更新关注用户和被关注用户的关注数和被关注数
-			globalDb.Where("id = ?", userId).First(&user).Update("follow_count", user.FollowCount-1)
-			globalDb.Where("id = ?", toUserId).First(&toUser).Update("follower_count", toUser.FollowerCount-1)
-			dbMutex.Unlock()
+			repository.GlobalDB.Where("id = ?", userId).First(&user).Update("follow_count", user.FollowCount-1)
+			repository.GlobalDB.Where("id = ?", toUserId).First(&toUser).Update("follower_count", toUser.FollowerCount-1)
+			repository.DBMutex.Unlock()
 
 			// 设置是取消关注行为
 			isFollow = false
@@ -92,9 +92,9 @@ func FollowList(c *gin.Context) {
 
 	// 获取所有这个用户关注的用户
 	var follows []repository.FollowDao
-	dbMutex.Lock()
-	globalDb.Where("user_id = ?", userId).Find(&follows)
-	dbMutex.Unlock()
+	repository.DBMutex.Lock()
+	repository.GlobalDB.Where("user_id = ?", userId).Find(&follows)
+	repository.DBMutex.Unlock()
 
 	// 将所有关注的用户加入userList中并最后返回
 	var userList []User
@@ -118,9 +118,9 @@ func FollowerList(c *gin.Context) {
 
 	// 获取所有关注这个用户的用户
 	var follows []repository.FollowDao
-	dbMutex.Lock()
-	globalDb.Where("to_user_id = ?", userId).Find(&follows)
-	dbMutex.Unlock()
+	repository.DBMutex.Lock()
+	repository.GlobalDB.Where("to_user_id = ?", userId).Find(&follows)
+	repository.DBMutex.Unlock()
 
 	// 将所有这个用户的粉丝加入userList中并最后返回
 	var userList []User
@@ -140,9 +140,9 @@ func FollowerList(c *gin.Context) {
 func GetFollowById(userId int64) map[int64]struct{} {
 	// 从follows关注信息表中查询出这个用户关注的所有用户的Id
 	var follows []repository.FollowDao
-	dbMutex.Lock()
-	globalDb.Where("user_id = ?", userId).Find(&follows)
-	dbMutex.Unlock()
+	repository.DBMutex.Lock()
+	repository.GlobalDB.Where("user_id = ?", userId).Find(&follows)
+	repository.DBMutex.Unlock()
 
 	var followsInfo = make(map[int64]struct{})
 

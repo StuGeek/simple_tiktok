@@ -1,5 +1,17 @@
 package repository
 
+import (
+	"sync"
+
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
+)
+
+var SqlUsername = "root"                 // 数据库的用户名
+var SqlPassword = "123456"               // 数据库的密码
+var SqlDBName = "simple_tiktok"          // 使用的数据库名
+var SqlDemoDBName = "demo_simple_tiktok" // 导入demo数据使用的数据库名
+
 // 用户信息表users
 type UserDao struct {
 	Id            int64  `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
@@ -63,4 +75,23 @@ type FollowDao struct {
 
 func (FollowDao) TableName() string {
 	return "follows"
+}
+
+var GlobalDB *gorm.DB    // 全局数据库操作指针
+var DBMutex sync.RWMutex // 操作数据库锁
+
+// 初始化数据库，进行自动迁移或建表，初始化用户信息map
+func InitDB(dbName string) {
+	dsn := SqlUsername + ":" + SqlPassword + "@tcp(127.0.0.1:3306)/" + dbName + "?charset=utf8mb4&parseTime=True&loc=Local"
+	var err error
+	GlobalDB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	if err != nil {
+		panic("failed to connect database")
+	}
+
+	GlobalDB.AutoMigrate(&UserDao{})
+	GlobalDB.AutoMigrate(&VideoDao{})
+	GlobalDB.AutoMigrate(&FavoriteVideoDao{})
+	GlobalDB.AutoMigrate(&CommentDao{})
+	GlobalDB.AutoMigrate(&FollowDao{})
 }

@@ -50,11 +50,11 @@ func CommentAction(c *gin.Context) {
 
 			var video repository.VideoDao
 
-			dbMutex.Lock()
-			globalDb.Create(&newCommentDao)
+			repository.DBMutex.Lock()
+			repository.GlobalDB.Create(&newCommentDao)
 			// 更新视频信息表中相应视频的评论数加一
-			globalDb.Where("id = ?", videoId).First(&video).Update("comment_count", video.CommentCount+1)
-			dbMutex.Unlock()
+			repository.GlobalDB.Where("id = ?", videoId).First(&video).Update("comment_count", video.CommentCount+1)
+			repository.DBMutex.Unlock()
 
 			c.JSON(http.StatusOK, CommentActionResponse{Response: Response{StatusCode: 0},
 				Comment: Comment{
@@ -68,15 +68,15 @@ func CommentAction(c *gin.Context) {
 			// commentIdStr := c.Query("comment_id")
 
 			// commentId, _ := strconv.ParseInt(commentIdStr, 10, 64)
-			// globalDb.Where("id = ?", commentId).Delete(&CommentDao{})
+			// repository.GlobalDB.Where("id = ?", commentId).Delete(&CommentDao{})
 
 			var video repository.VideoDao
 
-			dbMutex.Lock()
+			repository.DBMutex.Lock()
 			// 如果是取消评论，则从评论信息表中删除相应的记录，并更新视频信息表中相应视频的评论数减一
-			globalDb.Where("user_id = ? and video_id = ?", usersLoginInfo[token].Id, videoId).Delete(&repository.CommentDao{})
-			globalDb.Where("id = ?", videoId).First(&video).Update("comment_count", video.CommentCount-1)
-			dbMutex.Unlock()
+			repository.GlobalDB.Where("user_id = ? and video_id = ?", usersLoginInfo[token].Id, videoId).Delete(&repository.CommentDao{})
+			repository.GlobalDB.Where("id = ?", videoId).First(&video).Update("comment_count", video.CommentCount-1)
+			repository.DBMutex.Unlock()
 		}
 		c.JSON(http.StatusOK, Response{StatusCode: 0})
 	} else {
@@ -92,9 +92,9 @@ func CommentList(c *gin.Context) {
 
 	// 从评论信息表中根据视频id获取按发布时间倒序的所有评论
 	var comments []repository.CommentDao
-	dbMutex.Lock()
-	globalDb.Where("video_id = ?", videoId).Order("publish_time desc").Find(&comments)
-	dbMutex.Unlock()
+	repository.DBMutex.Lock()
+	repository.GlobalDB.Where("video_id = ?", videoId).Order("publish_time desc").Find(&comments)
+	repository.DBMutex.Unlock()
 
 	// 从记录账号信息的map中获取发布评论的User信息，返回相应的评论列表
 	var commentList []Comment

@@ -27,20 +27,20 @@ func FavoriteAction(c *gin.Context) {
 		// 如果是点赞行为且之前没有给这个视频点过赞
 		if actionType == "1" && !isFavorite {
 			// 将数据库中videos视频信息表的这个视频的总点赞数加一
-			dbMutex.Lock()
-			globalDb.Where("id = ?", videoId).First(&video).Update("favorite_count", video.FavoriteCount+1).Update("is_favorite", true)
+			repository.DBMutex.Lock()
+			repository.GlobalDB.Where("id = ?", videoId).First(&video).Update("favorite_count", video.FavoriteCount+1).Update("is_favorite", true)
 			// 在数据库的favorite_videos点赞视频表中创建相应点赞记录
-			globalDb.Create(&repository.FavoriteVideoDao{
+			repository.GlobalDB.Create(&repository.FavoriteVideoDao{
 				Token:   token,
 				VideoId: videoId,
 			})
-			dbMutex.Unlock()
+			repository.DBMutex.Unlock()
 		} else if actionType == "2" && isFavorite {
-			dbMutex.Lock()
+			repository.DBMutex.Lock()
 			// 如果是取消点赞行为且之前给这个视频点过赞了，更新视频总点赞数，删除点赞记录
-			globalDb.Where("id = ?", videoId).First(&video).Update("favorite_count", video.FavoriteCount-1).Update("is_favorite", false)
-			globalDb.Where("token = ? and video_id = ?", token, videoId).Delete(&repository.FavoriteVideoDao{})
-			dbMutex.Unlock()
+			repository.GlobalDB.Where("id = ?", videoId).First(&video).Update("favorite_count", video.FavoriteCount-1).Update("is_favorite", false)
+			repository.GlobalDB.Where("token = ? and video_id = ?", token, videoId).Delete(&repository.FavoriteVideoDao{})
+			repository.DBMutex.Unlock()
 		}
 
 		c.JSON(http.StatusOK, Response{StatusCode: 0})
@@ -74,9 +74,9 @@ func FavoriteList(c *gin.Context) {
 func GetFavoriteVideoByToken(token string) map[int64]Video {
 	// 用favorite_videos表和videos表查询出特定token对应用户所点赞的视频
 	var favoriteVideos []repository.VideoDao
-	dbMutex.Lock()
-	globalDb.Joins("inner join favorite_videos on videos.id = favorite_videos.video_id").Where("favorite_videos.token = ?", token).Find(&favoriteVideos)
-	dbMutex.Unlock()
+	repository.DBMutex.Lock()
+	repository.GlobalDB.Joins("inner join favorite_videos on videos.id = favorite_videos.video_id").Where("favorite_videos.token = ?", token).Find(&favoriteVideos)
+	repository.DBMutex.Unlock()
 
 	var favoriteVideoInfo = make(map[int64]Video)
 

@@ -2,38 +2,21 @@ package controller
 
 import (
 	"github.com/RaymondCode/simple-demo/repository"
-	"gorm.io/driver/mysql"
-	"gorm.io/gorm"
 )
 
 // 初始化使用Demo数据的数据库
 func InitDemoData() {
-	dsn := sqlUsername + ":" + sqlPassword + "@tcp(127.0.0.1:3306)/" + sqlDemoDBName + "?charset=utf8mb4&parseTime=True&loc=Local"
-	var err error
-	globalDb, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
-	if err != nil {
-		panic("failed to connect database")
-	}
+	repository.GlobalDB.Where("1 = 1").Delete(&repository.UserDao{})
+	repository.GlobalDB.Where("1 = 1").Delete(&repository.VideoDao{})
+	repository.GlobalDB.Where("1 = 1").Delete(&repository.FavoriteVideoDao{})
+	repository.GlobalDB.Where("1 = 1").Delete(&repository.CommentDao{})
+	repository.GlobalDB.Where("1 = 1").Delete(&repository.FollowDao{})
 
-	globalDb.AutoMigrate(&repository.UserDao{})
-	globalDb.AutoMigrate(&repository.VideoDao{})
-	globalDb.AutoMigrate(&repository.FavoriteVideoDao{})
-	globalDb.AutoMigrate(&repository.CommentDao{})
-	globalDb.AutoMigrate(&repository.FollowDao{})
-
-	globalDb.Where("1 = 1").Delete(&repository.UserDao{})
-	globalDb.Where("1 = 1").Delete(&repository.VideoDao{})
-	globalDb.Where("1 = 1").Delete(&repository.FavoriteVideoDao{})
-	globalDb.Where("1 = 1").Delete(&repository.CommentDao{})
-	globalDb.Where("1 = 1").Delete(&repository.FollowDao{})
-
-	globalDb.Create(&DemoUser)
-	globalDb.Create(&DemoVideos)
-	globalDb.Create(&DemoFavoriteVideos)
-	globalDb.Create(&DemoComments)
-	globalDb.Create(&DemoFollows)
-
-	InitUserInfo()
+	repository.GlobalDB.Create(&DemoUser)
+	repository.GlobalDB.Create(&DemoVideos)
+	repository.GlobalDB.Create(&DemoFavoriteVideos)
+	repository.GlobalDB.Create(&DemoComments)
+	repository.GlobalDB.Create(&DemoFollows)
 }
 
 var DemoUser = []repository.UserDao{

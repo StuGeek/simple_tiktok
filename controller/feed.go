@@ -47,9 +47,9 @@ func Feed(c *gin.Context) {
 func InitVideoInfo(lastestTime int64, token string) ([]Video, int64) {
 	// 找到投稿时间不晚于lastestTime的投稿视频，按投稿时间倒序排列，最多30个
 	var videos []repository.VideoDao
-	dbMutex.Lock()
-	globalDb.Where("publish_time <= ?", lastestTime).Order("publish_time desc").Find(&videos).Limit(30)
-	dbMutex.Unlock()
+	repository.DBMutex.Lock()
+	repository.GlobalDB.Where("publish_time <= ?", lastestTime).Order("publish_time desc").Find(&videos).Limit(30)
+	repository.DBMutex.Unlock()
 	var nextTime int64
 
 	// 获取用户点赞的视频列表

@@ -50,9 +50,9 @@ func Publish(c *gin.Context) {
 
 	// 获取视频标题
 	title := c.PostForm("title")
-	dbMutex.Lock()
+	repository.DBMutex.Lock()
 	// 将视频信息存入数据库中，投稿时间为当前时间
-	globalDb.Create(&repository.VideoDao{
+	repository.GlobalDB.Create(&repository.VideoDao{
 		AuthorId:      user.Id,
 		PlayUrl:       serverUrl + "static/" + finalName,
 		FavoriteCount: 0,
@@ -61,7 +61,7 @@ func Publish(c *gin.Context) {
 		Title:         title,
 		PublishTime:   time.Now().Unix(),
 	})
-	dbMutex.Unlock()
+	repository.DBMutex.Unlock()
 
 	c.JSON(http.StatusOK, Response{
 		StatusCode: 0,
@@ -78,9 +78,9 @@ func PublishList(c *gin.Context) {
 
 	// 从数据库中根据用户id获取这个用户发布的视频列表
 	var videoDaoList []repository.VideoDao
-	dbMutex.Lock()
-	globalDb.Where("author_id = ?", userId).Find(&videoDaoList)
-	dbMutex.Unlock()
+	repository.DBMutex.Lock()
+	repository.GlobalDB.Where("author_id = ?", userId).Find(&videoDaoList)
+	repository.DBMutex.Unlock()
 
 	// 获取这个用户点赞的视频列表
 	favoriteVideoInfo := GetFavoriteVideoByToken(token)

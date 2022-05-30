@@ -47,9 +47,9 @@ func Register(c *gin.Context) {
 			IsFollow:      false,
 			Token:         token,
 		}
-		dbMutex.Lock()
-		globalDb.Create(&newUserDao)
-		dbMutex.Unlock()
+		repository.DBMutex.Lock()
+		repository.GlobalDB.Create(&newUserDao)
+		repository.DBMutex.Unlock()
 
 		// 记录用户token与用户User结构体的对应关系，插入数据库后，表中id为主键，可直接获取作为用户id
 		usersLoginInfo[token] = User{
@@ -124,9 +124,9 @@ func InitUserInfo() {
 	// 获取所有账号信息
 	var users []repository.UserDao
 
-	dbMutex.Lock()
-	globalDb.Find(&users)
-	dbMutex.Unlock()
+	repository.DBMutex.Lock()
+	repository.GlobalDB.Find(&users)
+	repository.DBMutex.Unlock()
 
 	// 遍历所有账号
 	for _, user := range users {
