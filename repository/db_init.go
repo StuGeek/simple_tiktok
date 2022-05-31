@@ -2,6 +2,7 @@ package repository
 
 import (
 	"sync"
+	"time"
 
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -88,6 +89,16 @@ func InitDB(dbName string) {
 	if err != nil {
 		panic("failed to connect database")
 	}
+
+	sqlDB, err := GlobalDB.DB()
+    if err != nil {
+        panic("connect db server failed.")
+    }
+
+	// 使用连接池
+	sqlDB.SetMaxIdleConns(10)
+    sqlDB.SetMaxOpenConns(100)
+    sqlDB.SetConnMaxLifetime(time.Second * 600)
 
 	GlobalDB.AutoMigrate(&UserDao{})
 	GlobalDB.AutoMigrate(&VideoDao{})

@@ -1,6 +1,6 @@
 package controller
 
-var serverUrl = "http://172.26.44.188:8080/" // 服务器的url
+var serverUrl = "http://172.26.77.75:8080/" // 服务器的url
 
 type Response struct {
 	StatusCode int32  `json:"status_code"`
