@@ -69,9 +69,9 @@ func Publish(c *gin.Context) {
 	})
 }
 
-// 返回发布作品列表
+// 根据user_id返回发布作品列表
 func PublishList(c *gin.Context) {
-	token := c.Query("token")
+	// token := c.Query("token")
 	userIdStr := c.Query("user_id")
 
 	userId, _ := strconv.ParseInt(userIdStr, 10, 64)
@@ -83,7 +83,7 @@ func PublishList(c *gin.Context) {
 	repository.DBMutex.Unlock()
 
 	// 获取这个用户点赞的视频列表
-	favoriteVideoInfo := GetFavoriteVideoByToken(token)
+	favoriteVideoInfo := GetFavoriteVideoByToken(userIdToToken[userId])
 
 	var videoList []Video
 	for _, videoDao := range videoDaoList {
@@ -93,7 +93,7 @@ func PublishList(c *gin.Context) {
 		// 将从数据库中取出的视频列表加入到videoList中，并最后返回
 		videoList = append(videoList, Video{
 			Id:            videoDao.Id,
-			Author:        usersLoginInfo[token],
+			Author:        usersLoginInfo[userIdToToken[userId]],
 			PlayUrl:       videoDao.PlayUrl,
 			CoverUrl:      videoDao.CoverUrl,
 			FavoriteCount: videoDao.FavoriteCount,

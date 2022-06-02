@@ -51,10 +51,13 @@ func FavoriteAction(c *gin.Context) {
 
 // 返回点赞喜欢列表
 func FavoriteList(c *gin.Context) {
-	token := c.Query("token")
+	// token := c.Query("token")
+	userIdStr := c.Query("user_id")
+
+	userId, _ := strconv.ParseInt(userIdStr, 10, 64)
 
 	// 获取这个用户点赞的视频列表
-	favoriteVideos := GetFavoriteVideoByToken(token)
+	favoriteVideos := GetFavoriteVideoByToken(userIdToToken[userId])
 
 	// 将所有点赞的视频加入videoList中并最后返回
 	var videoList []Video
