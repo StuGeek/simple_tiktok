@@ -5,7 +5,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/RaymondCode/simple-demo/repository"
+	"simple_tiktok/repository"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -48,9 +49,12 @@ func InitVideoInfo(lastestTime int64, token string) ([]Video, int64) {
 	// 找到投稿时间不晚于lastestTime的投稿视频，按投稿时间倒序排列，最多30个
 	var videos []repository.VideoDao
 	repository.DBMutex.Lock()
-	repository.GlobalDB.Where("publish_time <= ?", lastestTime).Order("publish_time desc").Find(&videos).Limit(30)
+	repository.GlobalDB.Where("publish_time <= ?", lastestTime).Order("publish_time desc").Limit(30).Find(&videos)
 	repository.DBMutex.Unlock()
-	var nextTime int64
+
+	if len(videos) == 0 {
+		return nil, 0
+	}
 
 	// 获取用户点赞的视频列表
 	favoriteVideoInfo := GetFavoriteVideoByToken(token)
@@ -70,12 +74,8 @@ func InitVideoInfo(lastestTime int64, token string) ([]Video, int64) {
 			IsFavorite:    isFavorite,
 			Title:         videoDao.Title,
 		})
-
-		// 退出循环时，记录下本次返回的视频中，发布最早的时间，作为下次请求时的latest_time
-		nextTime = videoDao.PublishTime
-		// nextTime = time.Now().Unix()
 	}
 
 	// 返回获取的视频列表和下次请求时的latest_time
-	return videoList, nextTime
+	return videoList, videos[len(videos)-1].PublishTime
 }

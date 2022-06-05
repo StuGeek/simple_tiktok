@@ -5,7 +5,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/RaymondCode/simple-demo/repository"
+	"simple_tiktok/repository"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -65,16 +66,15 @@ func CommentAction(c *gin.Context) {
 				}})
 			return
 		} else if actionType == "2" {
-			// commentIdStr := c.Query("comment_id")
+			commentIdStr := c.Query("comment_id")
 
-			// commentId, _ := strconv.ParseInt(commentIdStr, 10, 64)
-			// repository.GlobalDB.Where("id = ?", commentId).Delete(&CommentDao{})
+			commentId, _ := strconv.ParseInt(commentIdStr, 10, 64)
 
 			var video repository.VideoDao
 
 			repository.DBMutex.Lock()
 			// 如果是取消评论，则从评论信息表中删除相应的记录，并更新视频信息表中相应视频的评论数减一
-			repository.GlobalDB.Where("user_id = ? and video_id = ?", usersLoginInfo[token].Id, videoId).Delete(&repository.CommentDao{})
+			repository.GlobalDB.Where("id = ?", commentId).Delete(&repository.CommentDao{})
 			repository.GlobalDB.Where("id = ?", videoId).First(&video).Update("comment_count", video.CommentCount-1)
 			repository.DBMutex.Unlock()
 		}

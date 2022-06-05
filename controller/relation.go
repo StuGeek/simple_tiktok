@@ -4,7 +4,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/RaymondCode/simple-demo/repository"
+	"simple_tiktok/repository"
+
 	"github.com/gin-gonic/gin"
 )
 

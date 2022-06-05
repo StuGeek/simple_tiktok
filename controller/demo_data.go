@@ -1,10 +1,10 @@
 package controller
 
 import (
-	"github.com/RaymondCode/simple-demo/repository"
+	"simple_tiktok/repository"
 )
 
-// 初始化使用Demo数据的数据库
+// 初始化使用Demo数据的数据库，清空后导入Demo数据
 func InitDemoData() {
 	repository.GlobalDB.Where("1 = 1").Delete(&repository.UserDao{})
 	repository.GlobalDB.Where("1 = 1").Delete(&repository.VideoDao{})
@@ -23,7 +23,7 @@ var DemoUser = []repository.UserDao{
 	{
 		Id:            1,
 		Name:          "user1@1.com",
-		FollowCount:   3,
+		FollowCount:   1,
 		FollowerCount: 2,
 		IsFollow:      false,
 		Token:         "user1@1.com111111",
@@ -31,16 +31,16 @@ var DemoUser = []repository.UserDao{
 	{
 		Id:            2,
 		Name:          "user2@2.com",
-		FollowCount:   2,
-		FollowerCount: 2,
+		FollowCount:   1,
+		FollowerCount: 1,
 		IsFollow:      false,
 		Token:         "user2@2.com222222",
 	},
 	{
 		Id:            3,
 		Name:          "user3@3.com",
-		FollowCount:   2,
-		FollowerCount: 2,
+		FollowCount:   1,
+		FollowerCount: 1,
 		IsFollow:      false,
 		Token:         "user3@3.com333333",
 	},
@@ -48,7 +48,7 @@ var DemoUser = []repository.UserDao{
 		Id:            4,
 		Name:          "user4@4.com",
 		FollowCount:   2,
-		FollowerCount: 3,
+		FollowerCount: 1,
 		IsFollow:      false,
 		Token:         "user4@4.com444444",
 	},
@@ -71,7 +71,7 @@ var DemoVideos = []repository.VideoDao{
 		FavoriteCount: 3,
 		CommentCount:  1,
 		IsFavorite:    false,
-		Title:         "Bear - published at time 1",
+		Title:         "Video1: Bear - published at time 1",
 		PublishTime:   1,
 	},
 	{
@@ -82,7 +82,7 @@ var DemoVideos = []repository.VideoDao{
 		FavoriteCount: 1,
 		CommentCount:  2,
 		IsFavorite:    false,
-		Title:         "Texture of different fruits - published at time 2",
+		Title:         "Video2: Texture of different fruits - published at time 2",
 		PublishTime:   2,
 	},
 	{
@@ -90,10 +90,10 @@ var DemoVideos = []repository.VideoDao{
 		AuthorId:      DemoUser[2].Id,
 		PlayUrl:       "https://assets.mixkit.co/videos/preview/mixkit-ingredients-for-a-healthy-breakfast-3795-large.mp4",
 		CoverUrl:      "https://mixkit.imgix.net/videos/preview/mixkit-ingredients-for-a-healthy-breakfast-3795-0.jpg?q=80&auto=format%2Ccompress",
-		FavoriteCount: 1,
+		FavoriteCount: 0,
 		CommentCount:  0,
 		IsFavorite:    false,
-		Title:         "Ingredients for a healthy breakfast - published at time 3",
+		Title:         "Video3: Ingredients for a healthy breakfast - published at time 3",
 		PublishTime:   3,
 	},
 	{
@@ -101,10 +101,10 @@ var DemoVideos = []repository.VideoDao{
 		AuthorId:      DemoUser[3].Id,
 		PlayUrl:       "https://assets.mixkit.co/videos/preview/mixkit-fresh-apples-in-a-row-on-a-natural-background-42946-large.mp4",
 		CoverUrl:      "https://mixkit.imgix.net/videos/preview/mixkit-fresh-apples-in-a-row-on-a-natural-background-42946-0.jpg?q=80&auto=format%2Ccompress",
-		FavoriteCount: 1,
+		FavoriteCount: 0,
 		CommentCount:  0,
 		IsFavorite:    false,
-		Title:         "Fresh apples - published at time 4",
+		Title:         "Video4: Fresh apples - published at time 4",
 		PublishTime:   4,
 	},
 	{
@@ -115,7 +115,7 @@ var DemoVideos = []repository.VideoDao{
 		FavoriteCount: 0,
 		CommentCount:  0,
 		IsFavorite:    false,
-		Title:         "A bunch of strawberries - published at time 5",
+		Title:         "Video5: A bunch of strawberries - published at time 5",
 		PublishTime:   5,
 	},
 	{
@@ -126,7 +126,7 @@ var DemoVideos = []repository.VideoDao{
 		FavoriteCount: 0,
 		CommentCount:  0,
 		IsFavorite:    false,
-		Title:         "A fresh pizza - published at time 6",
+		Title:         "Video6: A fresh pizza - published at time 6",
 		PublishTime:   6,
 	},
 	{
@@ -137,7 +137,7 @@ var DemoVideos = []repository.VideoDao{
 		FavoriteCount: 0,
 		CommentCount:  0,
 		IsFavorite:    false,
-		Title:         "Hamburger with French fries and soda - published at time 7",
+		Title:         "Video7: Hamburger with French fries and soda - published at time 7",
 		PublishTime:   7,
 	},
 	{
@@ -148,7 +148,7 @@ var DemoVideos = []repository.VideoDao{
 		FavoriteCount: 0,
 		CommentCount:  0,
 		IsFavorite:    false,
-		Title:         "Serving juice - published at time 8",
+		Title:         "Video8: Serving juice - published at time 8",
 		PublishTime:   8,
 	},
 	{
@@ -159,7 +159,7 @@ var DemoVideos = []repository.VideoDao{
 		FavoriteCount: 0,
 		CommentCount:  0,
 		IsFavorite:    false,
-		Title:         "Fresh orange slices - published at time 9",
+		Title:         "Video9: Fresh orange slices - published at time 9",
 		PublishTime:   9,
 	},
 	{
@@ -170,7 +170,7 @@ var DemoVideos = []repository.VideoDao{
 		FavoriteCount: 0,
 		CommentCount:  0,
 		IsFavorite:    false,
-		Title:         "Rotating bowl with fruit - published at time 10",
+		Title:         "Video10: Rotating bowl with fruit - published at time 10",
 		PublishTime:   10,
 	},
 	{
@@ -181,7 +181,7 @@ var DemoVideos = []repository.VideoDao{
 		FavoriteCount: 0,
 		CommentCount:  0,
 		IsFavorite:    false,
-		Title:         "Bowl with yogurt - published at time 11",
+		Title:         "Video11: Bowl with yogurt - published at time 11",
 		PublishTime:   11,
 	},
 	{
@@ -192,7 +192,7 @@ var DemoVideos = []repository.VideoDao{
 		FavoriteCount: 0,
 		CommentCount:  0,
 		IsFavorite:    false,
-		Title:         "Rich watermelon - published at time 12",
+		Title:         "Video12: Rich watermelon - published at time 12",
 		PublishTime:   12,
 	},
 	{
@@ -203,7 +203,7 @@ var DemoVideos = []repository.VideoDao{
 		FavoriteCount: 0,
 		CommentCount:  0,
 		IsFavorite:    false,
-		Title:         "Valentine's Day dessert cupcake - published at time 13",
+		Title:         "Video13: Valentine's Day dessert cupcake - published at time 13",
 		PublishTime:   13,
 	},
 	{
@@ -214,7 +214,7 @@ var DemoVideos = []repository.VideoDao{
 		FavoriteCount: 0,
 		CommentCount:  0,
 		IsFavorite:    false,
-		Title:         "Eating pasta with a fork - published at time 14",
+		Title:         "Video14: Eating pasta with a fork - published at time 14",
 		PublishTime:   14,
 	},
 	{
@@ -225,7 +225,7 @@ var DemoVideos = []repository.VideoDao{
 		FavoriteCount: 0,
 		CommentCount:  0,
 		IsFavorite:    false,
-		Title:         "Salmon chunks with lemon - published at time 15",
+		Title:         "Video15: Salmon chunks with lemon - published at time 15",
 		PublishTime:   15,
 	},
 	{
@@ -236,7 +236,7 @@ var DemoVideos = []repository.VideoDao{
 		FavoriteCount: 0,
 		CommentCount:  0,
 		IsFavorite:    false,
-		Title:         "Green wheat - published at time 16",
+		Title:         "Video16: Green wheat - published at time 16",
 		PublishTime:   16,
 	},
 	{
@@ -247,7 +247,7 @@ var DemoVideos = []repository.VideoDao{
 		FavoriteCount: 0,
 		CommentCount:  0,
 		IsFavorite:    false,
-		Title:         "Fresh salmon sushi - published at time 17",
+		Title:         "Video17: Fresh salmon sushi - published at time 17",
 		PublishTime:   17,
 	},
 	{
@@ -258,7 +258,7 @@ var DemoVideos = []repository.VideoDao{
 		FavoriteCount: 0,
 		CommentCount:  0,
 		IsFavorite:    false,
-		Title:         "Flavor ice cream - published at time 18",
+		Title:         "Video18: Flavor ice cream - published at time 18",
 		PublishTime:   18,
 	},
 	{
@@ -269,7 +269,7 @@ var DemoVideos = []repository.VideoDao{
 		FavoriteCount: 0,
 		CommentCount:  0,
 		IsFavorite:    false,
-		Title:         "Banana slices - published at time 19",
+		Title:         "Video19: Banana slices - published at time 19",
 		PublishTime:   19,
 	},
 	{
@@ -280,7 +280,7 @@ var DemoVideos = []repository.VideoDao{
 		FavoriteCount: 0,
 		CommentCount:  0,
 		IsFavorite:    false,
-		Title:         "Citrus grapefruit slices - published at time 20",
+		Title:         "Video20: Citrus grapefruit slices - published at time 20",
 		PublishTime:   20,
 	},
 	{
@@ -291,7 +291,7 @@ var DemoVideos = []repository.VideoDao{
 		FavoriteCount: 0,
 		CommentCount:  0,
 		IsFavorite:    false,
-		Title:         "Red berries - published at time 21",
+		Title:         "Video21: Red berries - published at time 21",
 		PublishTime:   21,
 	},
 	{
@@ -302,7 +302,7 @@ var DemoVideos = []repository.VideoDao{
 		FavoriteCount: 0,
 		CommentCount:  0,
 		IsFavorite:    false,
-		Title:         "Wet grapes texture - published at time 22",
+		Title:         "Video22: Wet grapes texture - published at time 22",
 		PublishTime:   22,
 	},
 	{
@@ -310,10 +310,10 @@ var DemoVideos = []repository.VideoDao{
 		AuthorId:      DemoUser[2].Id,
 		PlayUrl:       "https://assets.mixkit.co/videos/preview/mixkit-squeezing-lemon-on-seafood-16439-large.mp4",
 		CoverUrl:      "https://mixkit.imgix.net/videos/preview/mixkit-squeezing-lemon-on-seafood-16439-0.jpg?q=80&auto=format%2Ccompress",
-		FavoriteCount: 1,
+		FavoriteCount: 0,
 		CommentCount:  0,
 		IsFavorite:    false,
-		Title:         "Squeezing lemon on seafood - published at time 23",
+		Title:         "Video23: Squeezing lemon on seafood - published at time 23",
 		PublishTime:   23,
 	},
 	{
@@ -321,10 +321,10 @@ var DemoVideos = []repository.VideoDao{
 		AuthorId:      DemoUser[3].Id,
 		PlayUrl:       "https://assets.mixkit.co/videos/preview/mixkit-fruit-composition-with-a-coconut-in-the-foreground-9558-large.mp4",
 		CoverUrl:      "https://mixkit.imgix.net/videos/preview/mixkit-fruit-composition-with-a-coconut-in-the-foreground-9558-0.jpg?q=80&auto=format%2Ccompress",
-		FavoriteCount: 1,
+		FavoriteCount: 0,
 		CommentCount:  0,
 		IsFavorite:    false,
-		Title:         "Fruit composition with a coconut - published at time 24",
+		Title:         "Video24: Fruit composition with a coconut - published at time 24",
 		PublishTime:   24,
 	},
 	{
@@ -332,10 +332,10 @@ var DemoVideos = []repository.VideoDao{
 		AuthorId:      DemoUser[4].Id,
 		PlayUrl:       "https://assets.mixkit.co/videos/preview/mixkit-hamburger-with-fries-and-a-soda-on-a-dark-background-38664-large.mp4",
 		CoverUrl:      "https://mixkit.imgix.net/videos/preview/mixkit-hamburger-with-fries-and-a-soda-on-a-dark-background-38664-0.jpg?q=80&auto=format%2Ccompress",
-		FavoriteCount: 1,
+		FavoriteCount: 0,
 		CommentCount:  0,
 		IsFavorite:    false,
-		Title:         "Hamburger with fries and a soda - published at time 25",
+		Title:         "Video25: Hamburger with fries and a soda - published at time 25",
 		PublishTime:   25,
 	},
 	{
@@ -343,10 +343,10 @@ var DemoVideos = []repository.VideoDao{
 		AuthorId:      DemoUser[0].Id,
 		PlayUrl:       "https://assets.mixkit.co/videos/preview/mixkit-plate-of-wings-rotating-on-a-black-background-38576-large.mp4",
 		CoverUrl:      "https://mixkit.imgix.net/videos/preview/mixkit-plate-of-wings-rotating-on-a-black-background-38576-0.jpg?q=80&auto=format%2Ccompress",
-		FavoriteCount: 1,
+		FavoriteCount: 0,
 		CommentCount:  0,
 		IsFavorite:    false,
-		Title:         "Plate of wings - published at time 26",
+		Title:         "Video26: Plate of wings - published at time 26",
 		PublishTime:   26,
 	},
 	{
@@ -354,10 +354,10 @@ var DemoVideos = []repository.VideoDao{
 		AuthorId:      DemoUser[1].Id,
 		PlayUrl:       "https://assets.mixkit.co/videos/preview/mixkit-played-with-grapefruits-wine-and-cheese-28812-large.mp4",
 		CoverUrl:      "https://mixkit.imgix.net/videos/preview/mixkit-played-with-grapefruits-wine-and-cheese-28812-0.jpg?q=80&auto=format%2Ccompress",
-		FavoriteCount: 1,
+		FavoriteCount: 0,
 		CommentCount:  0,
 		IsFavorite:    false,
-		Title:         "Played with grapefruits - published at time 27",
+		Title:         "Video27: Played with grapefruits - published at time 27",
 		PublishTime:   27,
 	},
 	{
@@ -365,10 +365,10 @@ var DemoVideos = []repository.VideoDao{
 		AuthorId:      DemoUser[2].Id,
 		PlayUrl:       "https://assets.mixkit.co/videos/preview/mixkit-pasta-eggs-wheat-and-flour-14506-large.mp4",
 		CoverUrl:      "https://mixkit.imgix.net/videos/preview/mixkit-pasta-eggs-wheat-and-flour-14506-0.jpg?q=80&auto=format%2Ccompress",
-		FavoriteCount: 2,
+		FavoriteCount: 0,
 		CommentCount:  0,
 		IsFavorite:    false,
-		Title:         "Pasta, eggs, wheat - published at time 28",
+		Title:         "Video28: Pasta, eggs, wheat - published at time 28",
 		PublishTime:   28,
 	},
 	{
@@ -379,7 +379,7 @@ var DemoVideos = []repository.VideoDao{
 		FavoriteCount: 3,
 		CommentCount:  0,
 		IsFavorite:    false,
-		Title:         "Smoothies and vegetables - published at time 29",
+		Title:         "Video29: Smoothies and vegetables - published at time 29",
 		PublishTime:   29,
 	},
 	{
@@ -390,7 +390,7 @@ var DemoVideos = []repository.VideoDao{
 		FavoriteCount: 2,
 		CommentCount:  2,
 		IsFavorite:    false,
-		Title:         "Chopped pieces of cheese - published at time 30",
+		Title:         "Video30: Chopped pieces of cheese - published at time 30",
 		PublishTime:   30,
 	},
 	{
@@ -401,7 +401,7 @@ var DemoVideos = []repository.VideoDao{
 		FavoriteCount: 3,
 		CommentCount:  5,
 		IsFavorite:    false,
-		Title:         "Doughnut - published at time 31",
+		Title:         "Video31: Doughnut - published at time 31",
 		PublishTime:   31,
 	},
 }
@@ -415,15 +415,6 @@ var DemoFavoriteVideos = []repository.FavoriteVideoDao{
 	{Token: "user3@3.com333333", VideoId: 29},
 	{Token: "user4@4.com444444", VideoId: 29},
 	{Token: "user5@5.com555555", VideoId: 29},
-	{Token: "user3@3.com333333", VideoId: 28},
-	{Token: "user4@4.com444444", VideoId: 28},
-	{Token: "user1@1.com111111", VideoId: 27},
-	{Token: "user2@2.com222222", VideoId: 26},
-	{Token: "user3@3.com333333", VideoId: 25},
-	{Token: "user4@4.com444444", VideoId: 24},
-	{Token: "user5@5.com555555", VideoId: 23},
-	{Token: "user3@3.com333333", VideoId: 4},
-	{Token: "user4@4.com444444", VideoId: 3},
 	{Token: "user5@5.com555555", VideoId: 2},
 	{Token: "user1@1.com111111", VideoId: 1},
 	{Token: "user2@2.com222222", VideoId: 1},
@@ -515,13 +506,9 @@ var DemoComments = []repository.CommentDao{
 
 var DemoFollows = []repository.FollowDao{
 	{UserId: DemoUser[0].Id, ToUserId: DemoUser[1].Id},
-	{UserId: DemoUser[0].Id, ToUserId: DemoUser[2].Id},
-	{UserId: DemoUser[0].Id, ToUserId: DemoUser[3].Id},
-	{UserId: DemoUser[1].Id, ToUserId: DemoUser[0].Id},
-	{UserId: DemoUser[1].Id, ToUserId: DemoUser[3].Id},
+	{UserId: DemoUser[1].Id, ToUserId: DemoUser[2].Id},
 	{UserId: DemoUser[2].Id, ToUserId: DemoUser[3].Id},
-	{UserId: DemoUser[2].Id, ToUserId: DemoUser[4].Id},
-	{UserId: DemoUser[3].Id, ToUserId: DemoUser[1].Id},
 	{UserId: DemoUser[3].Id, ToUserId: DemoUser[0].Id},
-	{UserId: DemoUser[4].Id, ToUserId: DemoUser[2].Id},
+	{UserId: DemoUser[3].Id, ToUserId: DemoUser[4].Id},
+	{UserId: DemoUser[4].Id, ToUserId: DemoUser[0].Id},
 }

@@ -70,8 +70,8 @@ func (CommentDao) TableName() string {
 
 // 关注信息表follows
 type FollowDao struct {
-	UserId   int64 `json:"user_id"`
-	ToUserId int64 `json:"to_user_id"`
+	UserId   int64 `json:"user_id"`    // 关注者的用户Id
+	ToUserId int64 `json:"to_user_id"` // 被关注者的用户Id
 }
 
 func (FollowDao) TableName() string {
@@ -91,14 +91,14 @@ func InitDB(dbName string) {
 	}
 
 	sqlDB, err := GlobalDB.DB()
-    if err != nil {
-        panic("connect db server failed.")
-    }
+	if err != nil {
+		panic("connect db server failed.")
+	}
 
 	// 使用连接池
 	sqlDB.SetMaxIdleConns(10)
-    sqlDB.SetMaxOpenConns(100)
-    sqlDB.SetConnMaxLifetime(time.Second * 600)
+	sqlDB.SetMaxOpenConns(100)
+	sqlDB.SetConnMaxLifetime(time.Second * 600)
 
 	GlobalDB.AutoMigrate(&UserDao{})
 	GlobalDB.AutoMigrate(&VideoDao{})

@@ -4,7 +4,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/RaymondCode/simple-demo/repository"
+	"simple_tiktok/repository"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -16,11 +17,11 @@ func FavoriteAction(c *gin.Context) {
 
 	videoId, _ := strconv.ParseInt(videoIdStr, 10, 64)
 
-	// 根据token获取这个用户点赞的视频列表
-	favoriteVideos := GetFavoriteVideoByToken(token)
-
 	// 点赞需要用户已经登录
 	if _, exist := usersLoginInfo[token]; exist {
+		// 根据token获取这个用户点赞的视频列表
+		favoriteVideos := GetFavoriteVideoByToken(token)
+
 		var video repository.VideoDao
 		// 获取用户是否已经给这个视频点过赞
 		_, isFavorite := favoriteVideos[videoId]

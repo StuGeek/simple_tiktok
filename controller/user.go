@@ -5,7 +5,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/RaymondCode/simple-demo/repository"
+	"simple_tiktok/repository"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -77,6 +78,8 @@ func Login(c *gin.Context) {
 
 	// 根据用户名和密码获取token
 	token := username + password
+
+	// encryToken := username + SHA256(password)
 
 	// 如果用户存在，从usersLoginInfo中根据token取出用户信息并返回
 	if user, exist := usersLoginInfo[token]; exist {

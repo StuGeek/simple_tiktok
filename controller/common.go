@@ -1,6 +1,11 @@
 package controller
 
-var serverUrl = "http://172.19.1.212:8080/" // 服务器的url
+import (
+	"crypto/sha256"
+	"encoding/hex"
+)
+
+var serverUrl = "http://172.19.30.6:8080/" // 服务器的url
 
 type Response struct {
 	StatusCode int32  `json:"status_code"`
@@ -31,4 +36,10 @@ type User struct {
 	FollowCount   int64  `json:"follow_count"`
 	FollowerCount int64  `json:"follower_count"`
 	IsFollow      bool   `json:"is_follow"`
+}
+
+func SHA256(ori string) string {
+	h := sha256.New()
+	h.Write([]byte(ori))
+	return hex.EncodeToString(h.Sum(nil))
 }

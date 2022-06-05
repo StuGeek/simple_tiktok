@@ -7,7 +7,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/RaymondCode/simple-demo/repository"
+	"simple_tiktok/repository"
+
 	"github.com/gin-gonic/gin"
 )
 
