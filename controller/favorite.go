@@ -25,8 +25,14 @@ func FavoriteAction(c *gin.Context) {
 		var video repository.VideoDao
 		// 获取用户是否已经给这个视频点过赞
 		_, isFavorite := favoriteVideos[videoId]
-		// 如果是点赞行为且之前没有给这个视频点过赞
-		if actionType == "1" && !isFavorite {
+		// 如果是点赞行为
+		if actionType == "1" {
+			// 如果之前已经点过赞了，直接返回
+			if isFavorite {
+				c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "The video has been liked"})
+				return
+			}
+
 			// 将数据库中videos视频信息表的这个视频的总点赞数加一
 			repository.DBMutex.Lock()
 			repository.GlobalDB.Where("id = ?", videoId).First(&video).Update("favorite_count", video.FavoriteCount+1).Update("is_favorite", true)
@@ -36,7 +42,13 @@ func FavoriteAction(c *gin.Context) {
 				VideoId: videoId,
 			})
 			repository.DBMutex.Unlock()
-		} else if actionType == "2" && isFavorite {
+		} else if actionType == "2" {
+			// 如果之前没有点过赞，直接返回
+			if !isFavorite {
+				c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "Didn't like the video before"})
+				return
+			}
+
 			repository.DBMutex.Lock()
 			// 如果是取消点赞行为且之前给这个视频点过赞了，更新视频总点赞数，删除点赞记录
 			repository.GlobalDB.Where("id = ?", videoId).First(&video).Update("favorite_count", video.FavoriteCount-1).Update("is_favorite", false)

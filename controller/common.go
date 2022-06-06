@@ -5,7 +5,7 @@ import (
 	"encoding/hex"
 )
 
-var serverUrl = "http://172.19.30.6:8080/" // 服务器的url
+var serverUrl = "http://172.19.52.144:8080/" // 服务器的url
 
 type Response struct {
 	StatusCode int32  `json:"status_code"`

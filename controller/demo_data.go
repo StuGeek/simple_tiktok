@@ -4,7 +4,7 @@ import (
 	"simple_tiktok/repository"
 )
 
-// 初始化使用Demo数据的数据库，清空后导入Demo数据
+// 初始化使用Demo数据的数据库，清空所有表后再导入Demo数据
 func InitDemoData() {
 	repository.GlobalDB.Where("1 = 1").Delete(&repository.UserDao{})
 	repository.GlobalDB.Where("1 = 1").Delete(&repository.VideoDao{})
@@ -22,43 +22,43 @@ func InitDemoData() {
 var DemoUser = []repository.UserDao{
 	{
 		Id:            1,
-		Name:          "user1@1.com",
+		Name:          "user1",
 		FollowCount:   1,
 		FollowerCount: 2,
 		IsFollow:      false,
-		Token:         "user1@1.com111111",
+		Token:         "user1bcb15f821479b4d5772bd0ca866c00ad5f926e3580720659cc80d39c9d09802a",
 	},
 	{
 		Id:            2,
-		Name:          "user2@2.com",
+		Name:          "user2",
 		FollowCount:   1,
 		FollowerCount: 1,
 		IsFollow:      false,
-		Token:         "user2@2.com222222",
+		Token:         "user24cc8f4d609b717356701c57a03e737e5ac8fe885da8c7163d3de47e01849c635",
 	},
 	{
 		Id:            3,
-		Name:          "user3@3.com",
+		Name:          "user3",
 		FollowCount:   1,
 		FollowerCount: 1,
 		IsFollow:      false,
-		Token:         "user3@3.com333333",
+		Token:         "user368487dc295052aa79c530e283ce698b8c6bb1b42ff0944252e1910dbecdc5425",
 	},
 	{
 		Id:            4,
-		Name:          "user4@4.com",
+		Name:          "user4",
 		FollowCount:   2,
 		FollowerCount: 1,
 		IsFollow:      false,
-		Token:         "user4@4.com444444",
+		Token:         "user469f7f7a7f8bca9970fa6f9c0b8dad06901d3ef23fd599d3213aa5eee5621c3e3",
 	},
 	{
 		Id:            5,
-		Name:          "user5@5.com",
+		Name:          "user5",
 		FollowCount:   1,
 		FollowerCount: 1,
 		IsFollow:      false,
-		Token:         "user5@5.com555555",
+		Token:         "user5af41e68e1309fa29a5044cbdc36b90a3821d8807e68c7675a6c495112bc8a55f",
 	},
 }
 
@@ -407,18 +407,18 @@ var DemoVideos = []repository.VideoDao{
 }
 
 var DemoFavoriteVideos = []repository.FavoriteVideoDao{
-	{Token: "user3@3.com333333", VideoId: 31},
-	{Token: "user4@4.com444444", VideoId: 31},
-	{Token: "user5@5.com555555", VideoId: 31},
-	{Token: "user1@1.com111111", VideoId: 30},
-	{Token: "user2@2.com222222", VideoId: 30},
-	{Token: "user3@3.com333333", VideoId: 29},
-	{Token: "user4@4.com444444", VideoId: 29},
-	{Token: "user5@5.com555555", VideoId: 29},
-	{Token: "user5@5.com555555", VideoId: 2},
-	{Token: "user1@1.com111111", VideoId: 1},
-	{Token: "user2@2.com222222", VideoId: 1},
-	{Token: "user4@4.com444444", VideoId: 1},
+	{Token: "user368487dc295052aa79c530e283ce698b8c6bb1b42ff0944252e1910dbecdc5425", VideoId: 31},
+	{Token: "user469f7f7a7f8bca9970fa6f9c0b8dad06901d3ef23fd599d3213aa5eee5621c3e3", VideoId: 31},
+	{Token: "user5af41e68e1309fa29a5044cbdc36b90a3821d8807e68c7675a6c495112bc8a55f", VideoId: 31},
+	{Token: "user1bcb15f821479b4d5772bd0ca866c00ad5f926e3580720659cc80d39c9d09802a", VideoId: 30},
+	{Token: "user24cc8f4d609b717356701c57a03e737e5ac8fe885da8c7163d3de47e01849c635", VideoId: 30},
+	{Token: "user368487dc295052aa79c530e283ce698b8c6bb1b42ff0944252e1910dbecdc5425", VideoId: 29},
+	{Token: "user469f7f7a7f8bca9970fa6f9c0b8dad06901d3ef23fd599d3213aa5eee5621c3e3", VideoId: 29},
+	{Token: "user5af41e68e1309fa29a5044cbdc36b90a3821d8807e68c7675a6c495112bc8a55f", VideoId: 29},
+	{Token: "user5af41e68e1309fa29a5044cbdc36b90a3821d8807e68c7675a6c495112bc8a55f", VideoId: 2},
+	{Token: "user1bcb15f821479b4d5772bd0ca866c00ad5f926e3580720659cc80d39c9d09802a", VideoId: 1},
+	{Token: "user24cc8f4d609b717356701c57a03e737e5ac8fe885da8c7163d3de47e01849c635", VideoId: 1},
+	{Token: "user469f7f7a7f8bca9970fa6f9c0b8dad06901d3ef23fd599d3213aa5eee5621c3e3", VideoId: 1},
 }
 
 var DemoComments = []repository.CommentDao{

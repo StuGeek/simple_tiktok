@@ -31,8 +31,22 @@ func Register(c *gin.Context) {
 	username := c.Query("username")
 	password := c.Query("password")
 
+	// 用户名和密码最长32个字符
+	if len(username) > 32 {
+		c.JSON(http.StatusOK, UserLoginResponse{
+			Response: Response{StatusCode: 1, StatusMsg: "The length of username should be less than 32"},
+		})
+		return
+	}
+	if len(password) > 32 {
+		c.JSON(http.StatusOK, UserLoginResponse{
+			Response: Response{StatusCode: 1, StatusMsg: "The length of password should be less than 32"},
+		})
+		return
+	}
+
 	// 根据用户名和密码获取token
-	token := username + password
+	token := username + SHA256(password)
 
 	// 如果用户已存在，直接返回注册失败
 	if _, exist := usersLoginInfo[token]; exist {
@@ -66,7 +80,7 @@ func Register(c *gin.Context) {
 		c.JSON(http.StatusOK, UserLoginResponse{
 			Response: Response{StatusCode: 0},
 			UserId:   newUserDao.Id,
-			Token:    username + password,
+			Token:    token,
 		})
 	}
 }
@@ -77,9 +91,7 @@ func Login(c *gin.Context) {
 	password := c.Query("password")
 
 	// 根据用户名和密码获取token
-	token := username + password
-
-	// encryToken := username + SHA256(password)
+	token := username + SHA256(password)
 
 	// 如果用户存在，从usersLoginInfo中根据token取出用户信息并返回
 	if user, exist := usersLoginInfo[token]; exist {
@@ -89,9 +101,9 @@ func Login(c *gin.Context) {
 			Token:    token,
 		})
 	} else {
-		// 找不到token则返回用户不存在
+		// 找不到token则返回用户名或密码错误
 		c.JSON(http.StatusOK, UserLoginResponse{
-			Response: Response{StatusCode: 1, StatusMsg: "User doesn't exist"},
+			Response: Response{StatusCode: 1, StatusMsg: "Username or password is wrong"},
 		})
 	}
 }

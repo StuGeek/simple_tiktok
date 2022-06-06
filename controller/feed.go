@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -37,6 +38,8 @@ func Feed(c *gin.Context) {
 	// 根据最新投稿时间戳和用户token，返回用户视频列表和下次请求时的latest_time
 	videoList, nextTime := InitVideoInfo(latestTime, token)
 
+	fmt.Println(nextTime)
+
 	c.JSON(http.StatusOK, FeedResponse{
 		Response:  Response{StatusCode: 0},
 		VideoList: videoList,
@@ -52,6 +55,7 @@ func InitVideoInfo(lastestTime int64, token string) ([]Video, int64) {
 	repository.GlobalDB.Where("publish_time <= ?", lastestTime).Order("publish_time desc").Limit(30).Find(&videos)
 	repository.DBMutex.Unlock()
 
+	// 没有视频则返回nil
 	if len(videos) == 0 {
 		return nil, 0
 	}
