@@ -2,8 +2,6 @@ package controller
 
 import (
 	"net/http"
-	"strconv"
-	"time"
 
 	"simple_tiktok/repository"
 
@@ -111,17 +109,11 @@ func Login(c *gin.Context) {
 // 用户登录时，获取登录用户的信息
 func UserInfo(c *gin.Context) {
 	token := c.Query("token")
-	userIdStr := c.Query("user_id")
-
-	userId, _ := strconv.ParseInt(userIdStr, 10, 64)
+	// userIdStr := c.Query("user_id")
+	// userId, _ := strconv.ParseInt(userIdStr, 10, 64)
 
 	// 如果用户存在，从usersLoginInfo中根据token取出用户信息并返回
 	if user, exist := usersLoginInfo[token]; exist {
-		// 初始化账号usersLoginInfo表，更新当前用户的关注状态
-		InitUserInfoById(userId)
-		// 刷新这个用户获取的视频信息
-		InitVideoInfo(time.Now().Unix(), token)
-
 		c.JSON(http.StatusOK, UserResponse{
 			Response: Response{StatusCode: 0},
 			User:     user,
@@ -134,7 +126,7 @@ func UserInfo(c *gin.Context) {
 	}
 }
 
-// 初始化账号信息
+// 初始化存储账号信息的usersLoginInfo和userIdToToken
 func InitUserInfo() {
 	// 获取所有账号信息
 	var users []repository.UserDao
@@ -151,29 +143,9 @@ func InitUserInfo() {
 			Name:          user.Name,
 			FollowCount:   user.FollowCount,
 			FollowerCount: user.FollowerCount,
-			IsFollow:      user.IsFollow,
+			IsFollow:      false,
 		}
 		// 存储每个账号的Id和Token的对应关系
 		userIdToToken[user.Id] = user.Token
-	}
-}
-
-// 根据登录用户的Id初始化账号信息，主要是设置这个账号对每个用户的IsFollow属性
-func InitUserInfoById(userId int64) {
-	followList := GetFollowById(userId)
-
-	// 遍历所有存储在usersLoginInfo中账号信息
-	for token, user := range usersLoginInfo {
-		// 判断登录用户是否关注了这个用户
-		_, isFollow := followList[user.Id]
-
-		// 存储每个账号的token和User的对应关系，设置IsFollow属性
-		usersLoginInfo[token] = User{
-			Id:            user.Id,
-			Name:          user.Name,
-			FollowCount:   user.FollowCount,
-			FollowerCount: user.FollowerCount,
-			IsFollow:      isFollow,
-		}
 	}
 }

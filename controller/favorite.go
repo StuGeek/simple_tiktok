@@ -3,6 +3,7 @@ package controller
 import (
 	"net/http"
 	"strconv"
+	"sync"
 
 	"simple_tiktok/repository"
 
@@ -33,26 +34,47 @@ func FavoriteAction(c *gin.Context) {
 				return
 			}
 
-			// 将数据库中videos视频信息表的这个视频的总点赞数加一
+			var wg sync.WaitGroup
+			wg.Add(2)
+
 			repository.DBMutex.Lock()
-			repository.GlobalDB.Where("id = ?", videoId).First(&video).Update("favorite_count", video.FavoriteCount+1).Update("is_favorite", true)
-			// 在数据库的favorite_videos点赞视频表中创建相应点赞记录
-			repository.GlobalDB.Create(&repository.FavoriteVideoDao{
-				Token:   token,
-				VideoId: videoId,
-			})
+			go func() {
+				defer wg.Done()
+				// 将数据库中videos视频信息表的这个视频的总点赞数加一
+				repository.GlobalDB.Where("id = ?", videoId).First(&video).Update("favorite_count", video.FavoriteCount+1).Update("is_favorite", true)
+			}()
+			go func() {
+				defer wg.Done()
+				// 在数据库的favorite_videos点赞视频表中创建相应点赞记录
+				repository.GlobalDB.Create(&repository.FavoriteVideoDao{
+					Token:   token,
+					VideoId: videoId,
+				})
+			}()
+			wg.Wait()
 			repository.DBMutex.Unlock()
 		} else if actionType == "2" {
-			// 如果之前没有点过赞，直接返回
+			// 如果是取消点赞行为且之前没有点过赞，直接返回
 			if !isFavorite {
 				c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "Didn't like the video before"})
 				return
 			}
 
+			var wg sync.WaitGroup
+			wg.Add(2)
+
 			repository.DBMutex.Lock()
-			// 如果是取消点赞行为且之前给这个视频点过赞了，更新视频总点赞数，删除点赞记录
-			repository.GlobalDB.Where("id = ?", videoId).First(&video).Update("favorite_count", video.FavoriteCount-1).Update("is_favorite", false)
-			repository.GlobalDB.Where("token = ? and video_id = ?", token, videoId).Delete(&repository.FavoriteVideoDao{})
+			go func() {
+				defer wg.Done()
+				// 如果是取消点赞行为且之前给这个视频点过赞了，更新视频总点赞数
+				repository.GlobalDB.Where("id = ?", videoId).First(&video).Update("favorite_count", video.FavoriteCount-1).Update("is_favorite", false)
+			}()
+			go func() {
+				defer wg.Done()
+				// 删除点赞记录
+				repository.GlobalDB.Where("token = ? and video_id = ?", token, videoId).Delete(&repository.FavoriteVideoDao{})
+			}()
+			wg.Wait()
 			repository.DBMutex.Unlock()
 		}
 
@@ -66,7 +88,6 @@ func FavoriteAction(c *gin.Context) {
 func FavoriteList(c *gin.Context) {
 	// token := c.Query("token")
 	userIdStr := c.Query("user_id")
-
 	userId, _ := strconv.ParseInt(userIdStr, 10, 64)
 
 	// 获取这个用户点赞的视频列表

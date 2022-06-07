@@ -2,21 +2,41 @@ package controller
 
 import (
 	"simple_tiktok/repository"
+	"sync"
 )
 
 // 初始化使用Demo数据的数据库，清空所有表后再导入Demo数据
 func InitDemoData() {
-	repository.GlobalDB.Where("1 = 1").Delete(&repository.UserDao{})
-	repository.GlobalDB.Where("1 = 1").Delete(&repository.VideoDao{})
-	repository.GlobalDB.Where("1 = 1").Delete(&repository.FavoriteVideoDao{})
-	repository.GlobalDB.Where("1 = 1").Delete(&repository.CommentDao{})
-	repository.GlobalDB.Where("1 = 1").Delete(&repository.FollowDao{})
+	var wg sync.WaitGroup
+	wg.Add(5)
 
-	repository.GlobalDB.Create(&DemoUser)
-	repository.GlobalDB.Create(&DemoVideos)
-	repository.GlobalDB.Create(&DemoFavoriteVideos)
-	repository.GlobalDB.Create(&DemoComments)
-	repository.GlobalDB.Create(&DemoFollows)
+	go func() {
+		defer wg.Done()
+		repository.GlobalDB.Where("1 = 1").Delete(&repository.UserDao{})
+		repository.GlobalDB.Create(&DemoUser)
+	}()
+	go func() {
+		defer wg.Done()
+		repository.GlobalDB.Where("1 = 1").Delete(&repository.VideoDao{})
+		repository.GlobalDB.Create(&DemoVideos)
+	}()
+	go func() {
+		defer wg.Done()
+		repository.GlobalDB.Where("1 = 1").Delete(&repository.FavoriteVideoDao{})
+		repository.GlobalDB.Create(&DemoFavoriteVideos)
+	}()
+	go func() {
+		defer wg.Done()
+		repository.GlobalDB.Where("1 = 1").Delete(&repository.CommentDao{})
+		repository.GlobalDB.Create(&DemoComments)
+	}()
+	go func() {
+		defer wg.Done()
+		repository.GlobalDB.Where("1 = 1").Delete(&repository.FollowDao{})
+		repository.GlobalDB.Create(&DemoFollows)
+	}()
+
+	wg.Wait()
 }
 
 var DemoUser = []repository.UserDao{

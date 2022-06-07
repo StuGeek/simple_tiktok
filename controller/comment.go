@@ -3,6 +3,7 @@ package controller
 import (
 	"net/http"
 	"strconv"
+	"sync"
 	"time"
 
 	"simple_tiktok/repository"
@@ -27,7 +28,6 @@ func CommentAction(c *gin.Context) {
 
 	// userId := c.Query("user_id")
 	videoIdStr := c.Query("video_id")
-
 	videoId, _ := strconv.ParseInt(videoIdStr, 10, 64)
 
 	// 评论需要用户已经登录
@@ -40,7 +40,6 @@ func CommentAction(c *gin.Context) {
 			createDate := now.Format("01-02")
 			publishTime := now.Unix()
 
-			// 向评论信息表中插入相应的评论记录
 			newCommentDao := repository.CommentDao{
 				UserId:      usersLoginInfo[token].Id,
 				VideoId:     videoId,
@@ -49,12 +48,22 @@ func CommentAction(c *gin.Context) {
 				PublishTime: publishTime,
 			}
 
-			var video repository.VideoDao
+			var wg sync.WaitGroup
+			wg.Add(2)
 
 			repository.DBMutex.Lock()
-			repository.GlobalDB.Create(&newCommentDao)
-			// 更新视频信息表中相应视频的评论数加一
-			repository.GlobalDB.Where("id = ?", videoId).First(&video).Update("comment_count", video.CommentCount+1)
+			go func() {
+				defer wg.Done()
+				// 向评论信息表中插入相应的评论记录
+				repository.GlobalDB.Create(&newCommentDao)
+			}()
+			go func() {
+				defer wg.Done()
+				var video repository.VideoDao
+				// 更新视频信息表中相应视频的评论数加一
+				repository.GlobalDB.Where("id = ?", videoId).First(&video).Update("comment_count", video.CommentCount+1)
+			}()
+			wg.Wait()
 			repository.DBMutex.Unlock()
 
 			c.JSON(http.StatusOK, CommentActionResponse{Response: Response{StatusCode: 0},
@@ -67,15 +76,24 @@ func CommentAction(c *gin.Context) {
 			return
 		} else if actionType == "2" {
 			commentIdStr := c.Query("comment_id")
-
 			commentId, _ := strconv.ParseInt(commentIdStr, 10, 64)
 
-			var video repository.VideoDao
+			var wg sync.WaitGroup
+			wg.Add(2)
 
 			repository.DBMutex.Lock()
-			// 如果是取消评论，则从评论信息表中删除相应的记录，并更新视频信息表中相应视频的评论数减一
-			repository.GlobalDB.Where("id = ?", commentId).Delete(&repository.CommentDao{})
-			repository.GlobalDB.Where("id = ?", videoId).First(&video).Update("comment_count", video.CommentCount-1)
+			go func() {
+				defer wg.Done()
+				// 如果是取消评论，则从评论信息表中删除相应的记录
+				repository.GlobalDB.Where("id = ?", commentId).Delete(&repository.CommentDao{})
+			}()
+			go func() {
+				defer wg.Done()
+				var video repository.VideoDao
+				// 更新视频信息表中相应视频的评论数减一
+				repository.GlobalDB.Where("id = ?", videoId).First(&video).Update("comment_count", video.CommentCount-1)
+			}()
+			wg.Wait()
 			repository.DBMutex.Unlock()
 		}
 		c.JSON(http.StatusOK, Response{StatusCode: 0})
@@ -87,7 +105,6 @@ func CommentAction(c *gin.Context) {
 // 查看视频的所有评论，按发布时间倒序
 func CommentList(c *gin.Context) {
 	videoIdStr := c.Query("video_id")
-
 	videoId, _ := strconv.ParseInt(videoIdStr, 10, 64)
 
 	// 从评论信息表中根据视频id获取按发布时间倒序的所有评论

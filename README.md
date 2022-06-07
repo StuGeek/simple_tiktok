@@ -5,19 +5,25 @@
 ```
 simple_tiktok
 |-- controller
-  |-- comment.go    // 评论功能
-  |-- common.go     // 使用到的数据结构体和全局服务器url
-  |-- demo_data.go  // demo数据，包括导入方法
-  |-- favorite.go   // 点赞功能
-  |-- feed.go       // 拉取视频
-  |-- publish.go    // 发布视频和作品列表
-  |-- relation.go   // 关注功能
-  |-- user.go       // 用户登录注册、获取用户信息
+  |-- comment_test.go
+  |-- comment.go        // 评论功能
+  |-- common.go         // 使用到的数据结构体和全局服务器url
+  |-- demo_data.go      // demo数据，包括导入方法
+  |-- favorite_test.go
+  |-- favorite.go       // 点赞功能
+  |-- feed_test.go
+  |-- feed.go           // 拉取视频
+  |-- publish_test.go
+  |-- publish.go        // 发布视频和作品列表
+  |-- relation_test.go
+  |-- relation.go       // 关注功能
+  |-- user_test.go
+  |-- user.go           // 用户登录注册、获取用户信息
 |-- public
-  |-- bear.mp4      // 本地视频文件，熊的视频
+  |-- bear.mp4          // 本地视频文件，熊的视频
   |-- data
 |-- repository
-  |--db_init.go     // 与数据库交互相关的数据模型和方法
+  |--db_init.go         // 与数据库交互相关的数据模型和方法
 |-- main.go
 |-- router.go
 ```
@@ -89,11 +95,11 @@ type UserDao struct {
 }
 ```
 
-其次有两个map，即`usersLoginInfo`和`userIdToToken`，分别存储用户token与用户User结构体的对应关系和存储用户Id与用户token的对应关系，每次启动程序时，都会将数据库中的用户信息导入这两个map中，可以加快其它功能的查询：
+其次有两个map，即`usersLoginInfo`和`userIdToToken`，分别存储用户token与用户User结构体的对应关系和存储用户Id与用户token的对应关系，每次启动程序时，都会将数据库中的用户信息导入这两个map中，可以用来根据用户的Id或token找到具体的User结构体：
 
-注册时，首先判断用户是否存在，如果用户已经存在，直接返回注册失败，否则将注册用户的用户名填入`Name`属性，用户名加密码组成`Token`属性，`FollowCount`、`FollowerCount`为0，`IsFollow`为`false`构成的UserDao对象直接插入数据库中的`users`表中，并在`usersLoginInfo`和`userIdToToken`记录新注册用户的对应关系。
+注册时，首先判断用户名或密码是否超过32个字符，超过则直接返回注册失败，接着判断用户是否存在，如果用户已经存在，直接返回注册失败，否则将注册用户的用户名填入`Name`属性，用户名拼接加密的密码组成`Token`属性，`FollowCount`、`FollowerCount`为0，`IsFollow`为`false`构成的UserDao对象直接插入数据库中的`users`表中，并在`usersLoginInfo`和`userIdToToken`记录新注册用户的对应关系。
 
-登录时，首先根据用户名和密码组成token，然后在`usersLoginInfo`中搜索是否存在这个token，存在则可以从`usersLoginInfo`中根据token取出用户信息并返回，找不到token则返回用户不存在。
+登录时，首先根据用户名拼接加密的密码组成token，然后在`usersLoginInfo`中搜索是否存在这个token，存在则可以从`usersLoginInfo`中根据token取出用户信息并返回，找不到token则返回用户不存在。
 
 ### 2. 视频 Feed 流
 
@@ -103,18 +109,18 @@ type UserDao struct {
 // 视频信息表videos
 type VideoDao struct {
 	Id            int64  `json:"id,omitempty" gorm:"primary_key;AUTO_INCREMENT"`
-	AuthorId      int64  `json:"author_id,omitempty"`
+	AuthorId      int64  `json:"author_id,omitempty" gorm:"index"`
 	PlayUrl       string `json:"play_url,omitempty"`
 	CoverUrl      string `json:"cover_url,omitempty"`
 	FavoriteCount int64  `json:"favorite_count,omitempty"`
 	CommentCount  int64  `json:"comment_count,omitempty"`
 	IsFavorite    bool   `json:"is_favorite,omitempty"`
 	Title         string `json:"title,omitempty"`
-	PublishTime   int64  `json:"publish_time,omitempty"`
+	PublishTime   int64  `json:"publish_time,omitempty" gorm:"index:,sort:desc"`
 }
 ```
 
-当拉取视频时，首先获取限制返回视频的投稿时间戳`latest_time`，如果没有设置，则默认为当前时间，然后找到投稿时间不晚于lastestTime的投稿视频，按投稿时间倒序排列，最多30个，接着获取用户点赞的视频列表，并存储在map中，根据投稿视频是否在这个点赞的视频列表中，设置获取的投稿视频的是否点赞`IsFavorite`属性，并记录本次返回的视频中，发布最早的时间`nextTime`，作为下次请求时的`latest_time`
+当拉取视频时，首先获取限制返回视频的投稿时间戳`latest_time`，如果没有设置，则默认为当前时间，然后找到投稿时间不晚于lastestTime的投稿视频，按投稿时间倒序排列，最多30个，如果没有直接返回nil，接着获取用户点赞的视频列表，并存储在map中，根据投稿视频是否在这个点赞的视频列表中，设置获取的投稿视频的是否点赞`IsFavorite`属性，并记录本次返回的视频中，发布最早的时间`nextTime`，作为下次请求时的`latest_time`
 
 ### 3. 视频投稿
 
@@ -124,7 +130,7 @@ type VideoDao struct {
 
 ### 4. 个人信息
 
-在登录时会获取个人信息，首先在`usersLoginInfo`中查找token，如果找不到返回用户不存在，找到则从`usersLoginInfo`中根据token取出用户信息，因为每个用户的关注列表不同，所以每次获取个人信息时，都需要从数据库的`follows`表中，找到当前用户关注的所有用户的Id，然后根据是否关注，重新设置`usersLoginInfo`中每个存在用户的`IsFollow`属性，被当前用户关注则`IsFollow`属性为`true`，否则为`false`，更新当前用户的关注状态，同时还要获取这个用户的视频列表，更新这个用户对每个视频的点赞状态。
+在登录时会获取个人信息，首先在`usersLoginInfo`中查找token，如果找不到返回用户不存在，找到则从`usersLoginInfo`中根据token取出用户信息并返回。
 
 ### 5. 点赞功能
 
@@ -133,12 +139,12 @@ type VideoDao struct {
 ```go
 // 点赞视频信息表favorite_videos
 type FavoriteVideoDao struct {
-	Token   string `json:"token"`    // 用户的token
-	VideoId int64  `json:"video_id"` // 用户喜欢的视频Id
+	Token   string `json:"token" gorm:"index"`    // 用户的token
+	VideoId int64  `json:"video_id" gorm:"index"` // 用户喜欢的视频Id
 }
 ```
 
-当点赞或取消点赞时，首先获取token，判断是否处于登录状态，不是则直接返回，否则先根据token获取这个用户点赞的视频列表，判断用户是否对当前视频点过赞了，如果是点赞行为且之前没有给这个视频点过赞，那么将数据库中`videos`表的这个视频的总点赞数加一，并在`favorite_videos`点赞视频表中创建相应点赞记录，之前点过赞则不作反应；如果是取消点赞行为且之前给这个视频点过赞了，那个更新数据库中的视频总点赞数，删除点赞记录，之前没点过赞则不作反应。
+当点赞或取消点赞时，首先获取token，判断是否处于登录状态，不是则直接返回，否则先根据token获取这个用户点赞的视频列表，判断用户是否对当前视频点过赞了，如果是点赞行为且之前没有给这个视频点过赞，那么将数据库中`videos`表的这个视频的总点赞数加一，并在`favorite_videos`点赞视频表中创建相应点赞记录，之前点过赞则不作反应，直接返回；如果是取消点赞行为且之前给这个视频点过赞了，那个更新数据库中的视频总点赞数，删除点赞记录，之前没点过赞则不作反应，直接返回。
 
 当获取点赞列表时，首先根据用户Id从`userIdToToken`中获取用户token，然后根据用户token从数据库的`favorite_videos`表中获取这个用户点赞的所有视频，最后返回。
 
@@ -151,14 +157,14 @@ type FavoriteVideoDao struct {
 type CommentDao struct {
 	Id          int64  `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
 	UserId      int64  `json:"user_id"`
-	VideoId     int64  `json:"video_id"`
+	VideoId     int64  `json:"video_id" gorm:"index"`
 	Content     string `json:"content"`
 	CreateDate  string `json:"create_date"`
-	PublishTime int64  `json:"publish_time"`
+	PublishTime int64  `json:"publish_time" gorm:"index:,sort:desc"`
 }
 ```
 
-当进行评论或取消评论时，首先获取token，判断是否处于登录状态，不是则直接返回，否则先根据token获取这个用户点赞的视频列表，判断用户是否对当前视频点过赞了，如果是点赞行为且之前没有给这个视频点过赞，那么将数据库中`videos`表的这个视频的总点赞数加一，并在`favorite_videos`点赞视频表中创建相应点赞记录，之前点过赞则不作反应；如果是取消点赞行为且之前给这个视频点过赞了，那个更新数据库中的视频总点赞数，删除点赞记录，之前没点过赞则不作反应。
+当进行评论或取消评论时，首先获取token，判断是否处于登录状态，不是则直接返回，如果是评论行为，首先获取当前日期作为创建日期，获取当前时间作为发布时间，然后向评论信息表中插入相应的评论记录，并更新视频信息表中相应视频的评论数加一；如果是取消评论行为，则从评论信息表中删除相应的记录，并更新视频信息表中相应视频的评论数减一。
 
 当获取视频的所有评论时，从数据库的`comments`表中根据视频id获取按发布时间倒序的所有评论，然后从从记录账号信息的`usersLoginInfo`和`userIdToToken`根据用户Id获取具体的评论用户信息，设置获取的评论列表中评论作者字段，返回相应的评论列表。
 
@@ -169,14 +175,97 @@ type CommentDao struct {
 ```go
 // 关注信息表follows
 type FollowDao struct {
-	UserId   int64 `json:"user_id"`     // 关注者的用户Id
-	ToUserId int64 `json:"to_user_id"`  // 被关注者的用户Id
+	UserId   int64 `json:"user_id" gorm:"index"`    // 关注者的用户Id
+	ToUserId int64 `json:"to_user_id" gorm:"index"` // 被关注者的用户Id
 }
 ```
 
-当进行关注或取消关注时，首先获取token，判断是否处于登录状态，不是则直接返回，否则先根据token获取这个用户的Id，如果是关注行为，那么在数据库的`follows`表中创建相应的记录，在`users`表中更新关注用户和被关注用户的关注数和被关注数；如果是取消关注行为，那么在数据库的`follows`表中删除相应的记录，在`users`表中更新关注用户和被关注用户的关注数和被关注数，对数据库操作完后，同时也要更新内存中的存储账号信息`usersLoginInfo`的map中相应用户的关注数、被关注数、是否被关注等信息。
+当进行关注或取消关注时，首先获取token，判断是否处于登录状态，不是则直接返回，否则先根据token获取这个用户的Id，如果是用户自己关注或取关自己，则不能操作，直接返回，否则继续，如果是关注行为，那么在数据库的`follows`表中创建相应的记录，在`users`表中更新关注用户和被关注用户的关注数和被关注数；如果是取消关注行为，那么在数据库的`follows`表中删除相应的记录，在`users`表中更新关注用户和被关注用户的关注数和被关注数，对数据库操作完后，同时也要更新内存中的存储账号信息`usersLoginInfo`的map中相应用户的关注数、被关注数、是否被关注等信息。
 
-当获取关注列表或粉丝列表时，从数据库的`follows`表中根据用户Id获取所有这个用户关注或关注这个用户的用户Id，然后从从记录账号信息的`usersLoginInfo`和`userIdToToken`根据用户Id获取具体的关注或粉丝用户信息，然后返回获取的用户列表。
+当获取关注列表或粉丝列表时，从数据库的`follows`表中根据用户Id获取所有这个用户关注或关注这个用户的用户Id，然后从从记录账号信息的`usersLoginInfo`和`userIdToToken`根据用户Id获取具体的关注或粉丝用户信息，如果是获取粉丝列表，还需要从数据库中根据用户id获取这个用户关注的所有用户，判断这个用户是否关注了粉丝，设置粉丝的`IsFollow`是否关注属性，然后返回获取的用户列表。
+
+### 8. 索引选择
+
+#### 8.1 视频信息videos表
+
+```go
+// 视频信息表videos
+type VideoDao struct {
+	Id            int64  `json:"id,omitempty" gorm:"primary_key;AUTO_INCREMENT"`
+	AuthorId      int64  `json:"author_id,omitempty" gorm:"index"`
+	PlayUrl       string `json:"play_url,omitempty"`
+	CoverUrl      string `json:"cover_url,omitempty"`
+	FavoriteCount int64  `json:"favorite_count,omitempty"`
+	CommentCount  int64  `json:"comment_count,omitempty"`
+	IsFavorite    bool   `json:"is_favorite,omitempty"`
+	Title         string `json:"title,omitempty"`
+	PublishTime   int64  `json:"publish_time,omitempty" gorm:"index:,sort:desc"`
+}
+```
+
+对于videos表，主要的操作是当调用Feed接口时，从数据库中根据`publish_time`字段查找小于`lastestTime`的视频，并按`publish_time`倒序排列，最多返回30个视频，以及调用返回作品列表PublishList接口时，根据`author_id`字段查找用户发布所有视频，还有发布视频时，向数据库中插入新的记录，因为拉取视频和查看个人页作品列表的频率应该远远高于发布视频的频率，一个人发布视频可能有上千个人看，在查询性能和更新性能之间应该更加偏向于查询性能，所以应该要在`publish_time`字段添加一个倒序索引，并在`author_id`字段添加一个索引，进行基准测试，每次都先删除整个数据库再建立数据库，以保证每次建立的表格按照要求建立索引，结果如下：
+
+![](./imgs/2.png)
+
+可以看到，向`publish_time`字段上添加倒序索引，在调用Feed接口时性能要比不添加索引或添加正序索引好一些，所以应该往`publish_time`字段上添加倒序索引。
+
+![](./imgs/3.png)
+
+可以看到，向`author_id`字段上添加索引，在调用返回作品列表的PublishList接口时性能要比不添加索引好一些，所以应该往`author_id`字段上添加索引。
+
+#### 8.2 点赞视频信息favorite_videos表
+
+```go
+// 点赞视频信息表favorite_videos
+type FavoriteVideoDao struct {
+	Token   string `json:"token" gorm:"index"`    // 用户的token
+	VideoId int64  `json:"video_id" gorm:"index"` // 用户喜欢的视频Id
+}
+```
+
+对于favorite_videos表，主要的操作是当调用FavoriteAction接口进行点赞或取消点赞行为，或调用FavoriteList接口返回点赞列表时，需要根据`token`和`video_id`字段从数据库中查找对应token用户点赞过的所有视频id，点赞或取消点赞时从数据库中根据`token`和`video_id`字段删除相应记录，所以需要在查找和更新性能之间进行取舍，通过基准测试决定是否应该在`token`和`video_id`字段建立索引，结果如下：
+
+![](./imgs/4.png)
+
+可以看到，向`token`和`video_id`字段添加索引，总体性能要好一点，所以应该往`token`和`video_id`字段上都添加索引。
+
+#### 8.3 评论信息comments表
+
+```go
+// 评论信息表comments
+type CommentDao struct {
+	Id          int64  `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
+	UserId      int64  `json:"user_id"`
+	VideoId     int64  `json:"video_id" gorm:"index"`
+	Content     string `json:"content"`
+	CreateDate  string `json:"create_date"`
+	PublishTime int64  `json:"publish_time" gorm:"index:,sort:desc"`
+}
+```
+
+对于comments表，主要的操作是当调用CommentAction接口进行评论或取消评论行为，需要向数据库中插入或删除相应的评论记录，或调用CommentList接口返回视频评论列表时，需要根据`video_id`查找视频所有的评论记录，并按`publish_time`字段倒序返回从数据库中查找对应token用户点赞过的所有视频id，所以应该在`video_id`字段建立索引，并在`publish_time`字段建立倒序索引基准测试如下：
+
+![](./imgs/5.png)
+
+可以看到，向`video_id`字段建立索引和向`publish_time`字段建立倒序索引，总体性能要好一点，所以应该往`video_id`字段建立索引和往`publish_time`字段建立倒序索引。
+
+#### 8.4 关注信息follows表
+
+```go
+// 关注信息表follows
+type FollowDao struct {
+	UserId   int64 `json:"user_id" gorm:"index"`    // 关注者的用户Id
+	ToUserId int64 `json:"to_user_id" gorm:"index"` // 被关注者的用户Id
+}
+```
+
+对于follows表，主要的操作是当调用RelationAction接口进行关注或取消关注行为，需要在数据库中建立或删除相应的记录，或调用FollowList接口和FollowerList返回关注列表和粉丝列表时，需要根据`user_id`和`to_user_id`字段从数据库中查找对应的关注记录，所以需要在查找和更新性能之间进行取舍，通过基准测试决定是否应该在`user_id`和`to_user_id`字段建立索引，结果如下：
+
+![](./imgs/6.png)
+
+![](./imgs/7.png)
+
+可以看到，向`user_id`和`to_user_id`字段上添加索引，总体性能要好一点，所以应该往`user_id`和`to_user_id`字段上都添加索引。
 
 ## 功能展示
 
