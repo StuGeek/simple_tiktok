@@ -286,11 +286,17 @@ func (RelationDao) TableName() string {
 ## 功能展示
 
 [登录、注册功能演示视频](http://120.79.66.18:8080/static/videos/%E7%99%BB%E5%BD%95%E3%80%81%E6%B3%A8%E5%86%8C%E5%8A%9F%E8%83%BD.mp4)
+
 [拉取视频流功能演示视频](http://120.79.66.18:8080/static/videos/%E6%8B%89%E5%8F%96%E8%A7%86%E9%A2%91%E5%8A%9F%E8%83%BD.mp4)
+
 [投稿功能演示视频](http://120.79.66.18:8080/static/videos/%E6%8A%95%E7%A8%BF%E5%8A%9F%E8%83%BD.mp4)
+
 [获取作品列表和喜欢列表演示视频](http://120.79.66.18:8080/static/videos/%E8%8E%B7%E5%8F%96%E4%BD%9C%E5%93%81%E5%88%97%E8%A1%A8.mp4)
+
 [点赞功能演示视频](http://120.79.66.18:8080/static/videos/%E7%82%B9%E8%B5%9E%E5%8A%9F%E8%83%BD.mp4)
+
 [评论功能演示视频](http://120.79.66.18:8080/static/videos/%E8%AF%84%E8%AE%BA%E5%8A%9F%E8%83%BD.mp4)
+
 [关注功能演示视频](http://120.79.66.18:8080/static/videos/%E5%85%B3%E6%B3%A8%E5%8A%9F%E8%83%BD.mp4)
 
 这里导入Demo数据进行展示，Demo数据写在`controller/demo_data.go`文件中，使用数据库`demo_simple_tiktok`存放导入的Demo数据，在服务器终端输入`go run main.go router.go --demo`即可导入Demo数据，在Demo数据中：
