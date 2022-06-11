@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"simple_tiktok/global"
 	"testing"
 )
 
@@ -44,7 +45,7 @@ func BenchmarkPublish(b *testing.B) {
 	}
 
 	client := &http.Client{}
-	req, err := http.NewRequest(method, serverUrl+url, payload)
+	req, err := http.NewRequest(method, global.ServerUrl+url, payload)
 
 	if err != nil {
 		fmt.Println(err)
@@ -69,7 +70,7 @@ func BenchmarkPublishList(b *testing.B) {
 	method := "GET"
 
 	client := &http.Client{}
-	req, err := http.NewRequest(method, serverUrl+url, nil)
+	req, err := http.NewRequest(method, global.ServerUrl+url, nil)
 
 	if err != nil {
 		fmt.Println(err)
@@ -77,6 +78,7 @@ func BenchmarkPublishList(b *testing.B) {
 	}
 
 	b.ResetTimer()
+	// 获取作品列表
 	for i := 0; i < b.N; i++ {
 		res, err := client.Do(req)
 		if err != nil {

@@ -1,11 +1,4 @@
-package controller
-
-import (
-	"crypto/sha256"
-	"encoding/hex"
-)
-
-var serverUrl = "http://172.26.90.5:8080/" // 服务器的url
+package global
 
 type Response struct {
 	StatusCode int32  `json:"status_code"`
@@ -36,11 +29,4 @@ type User struct {
 	FollowCount   int64  `json:"follow_count"`
 	FollowerCount int64  `json:"follower_count"`
 	IsFollow      bool   `json:"is_follow"`
-}
-
-// 对字符串使用sha256算法进行加密，得到新的字符串
-func SHA256(ori string) string {
-	h := sha256.New()
-	h.Write([]byte(ori))
-	return hex.EncodeToString(h.Sum(nil))
 }

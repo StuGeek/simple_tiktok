@@ -5,15 +5,16 @@ import (
 	"strconv"
 	"time"
 
-	"simple_tiktok/repository"
+	"simple_tiktok/global"
+	"simple_tiktok/service"
 
 	"github.com/gin-gonic/gin"
 )
 
 type FeedResponse struct {
-	Response
-	VideoList []Video `json:"video_list"`
-	NextTime  int64   `json:"next_time"`
+	global.Response
+	VideoList []global.Video `json:"video_list"`
+	NextTime  int64          `json:"next_time"`
 }
 
 // 获取按投稿时间倒序的视频列表，单次最多30个
@@ -30,49 +31,20 @@ func Feed(c *gin.Context) {
 
 	token := c.Query("token")
 
-	// 根据最新投稿时间戳和用户token，返回用户视频列表和下次请求时的latest_time
-	videoList, nextTime := InitVideoInfo(latestTime, token)
+	// 根据最新投稿时间戳和用户token，调用service层的获取视频列表服务，并获取下次请求时的latest_time
+	videoList, nextTime, err := service.GetFeedVideoList(latestTime, token)
+	// 如果服务出错，返回服务器错误响应
+	if err != nil {
+		c.JSON(http.StatusOK, UserLoginResponse{
+			Response: global.Response{StatusCode: 1, StatusMsg: "Internal Server Error! Get feed videos failed"},
+		})
+		return
+	}
 
+	// 调用service层没出错则返回响应成功，以及视频列表和下次请求时的latest_time
 	c.JSON(http.StatusOK, FeedResponse{
-		Response:  Response{StatusCode: 0},
+		Response:  global.Response{StatusCode: 0},
 		VideoList: videoList,
 		NextTime:  nextTime,
 	})
-}
-
-// 调用Feed接口时，初始化这个用户可以获取的视频信息
-func InitVideoInfo(lastestTime int64, token string) ([]Video, int64) {
-	// 找到投稿时间不晚于lastestTime的投稿视频，按投稿时间倒序排列，最多30个
-	var videos []repository.VideoDao
-	repository.DBMutex.Lock()
-	repository.GlobalDB.Where("publish_time <= ?", lastestTime).Order("publish_time desc").Limit(30).Find(&videos)
-	repository.DBMutex.Unlock()
-
-	// 没有视频则返回nil
-	if len(videos) == 0 {
-		return nil, 0
-	}
-
-	// 获取用户点赞的视频列表
-	favoriteVideoInfo := GetFavoriteVideoByToken(token)
-
-	var videoList []Video
-	for _, videoDao := range videos {
-		// 如果视频被点赞过，isFavorite设置为true，否则设置为false
-		_, isFavorite := favoriteVideoInfo[videoDao.Id]
-
-		videoList = append(videoList, Video{
-			Id:            videoDao.Id,
-			Author:        usersLoginInfo[userIdToToken[videoDao.AuthorId]],
-			PlayUrl:       videoDao.PlayUrl,
-			CoverUrl:      videoDao.CoverUrl,
-			FavoriteCount: videoDao.FavoriteCount,
-			CommentCount:  videoDao.CommentCount,
-			IsFavorite:    isFavorite,
-			Title:         videoDao.Title,
-		})
-	}
-
-	// 返回获取的视频列表和下次请求时的latest_time
-	return videoList, videos[len(videos)-1].PublishTime
 }

@@ -3,6 +3,7 @@ package controller
 import (
 	"fmt"
 	"net/http"
+	"simple_tiktok/global"
 	"testing"
 )
 
@@ -15,6 +16,7 @@ func BenchmarkCommentAction(b *testing.B) {
 	var req *http.Request
 	var err error
 
+	// 测试次数必须是偶数
 	n := b.N
 	if n == 0 || n == 1 {
 		return
@@ -23,9 +25,10 @@ func BenchmarkCommentAction(b *testing.B) {
 		n--
 	}
 
-	preUrl := serverUrl + url
+	preUrl := global.ServerUrl + url
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	// 交替评论和删除评论
+	for i := 0; i < n; i++ {
 		if i%2 == 0 {
 			req, err = http.NewRequest(method, preUrl+"1", nil)
 		} else {
@@ -50,7 +53,7 @@ func BenchmarkCommentList(b *testing.B) {
 	method := "GET"
 
 	client := &http.Client{}
-	req, err := http.NewRequest(method, serverUrl+url, nil)
+	req, err := http.NewRequest(method, global.ServerUrl+url, nil)
 
 	if err != nil {
 		fmt.Println(err)
@@ -58,6 +61,7 @@ func BenchmarkCommentList(b *testing.B) {
 	}
 
 	b.ResetTimer()
+	// 获取评论列表
 	for i := 0; i < b.N; i++ {
 		res, err := client.Do(req)
 		if err != nil {

@@ -3,22 +3,21 @@ package controller
 import (
 	"net/http"
 	"strconv"
-	"sync"
-	"time"
 
-	"simple_tiktok/repository"
+	"simple_tiktok/global"
+	"simple_tiktok/service"
 
 	"github.com/gin-gonic/gin"
 )
 
 type CommentListResponse struct {
-	Response
-	CommentList []Comment `json:"comment_list"`
+	global.Response
+	CommentList []global.Comment `json:"comment_list"`
 }
 
 type CommentActionResponse struct {
-	Response
-	Comment Comment `json:"comment"`
+	global.Response
+	Comment global.Comment `json:"comment"`
 }
 
 // 评论或取消评论行为
@@ -26,49 +25,26 @@ func CommentAction(c *gin.Context) {
 	token := c.Query("token")
 	actionType := c.Query("action_type")
 
-	// userId := c.Query("user_id")
 	videoIdStr := c.Query("video_id")
 	videoId, _ := strconv.ParseInt(videoIdStr, 10, 64)
 
 	// 评论需要用户已经登录
-	if user, exist := usersLoginInfo[token]; exist {
+	if user, exist := service.GetExistUserByToken(token); exist {
 		// 如果是发布评论
 		if actionType == "1" {
 			text := c.Query("comment_text")
-
-			now := time.Now()
-			createDate := now.Format("01-02")
-			publishTime := now.Unix()
-
-			newCommentDao := repository.CommentDao{
-				UserId:      usersLoginInfo[token].Id,
-				VideoId:     videoId,
-				Content:     text,
-				CreateDate:  createDate,
-				PublishTime: publishTime,
+			// 调用service层的发布评论服务
+			commentId, createDate, errMsg := service.PublishComment(user.Id, videoId, text)
+			// 如果服务出错，返回错误信息响应
+			if errMsg != "" {
+				c.JSON(http.StatusOK, global.Response{StatusCode: 1, StatusMsg: errMsg})
+				return
 			}
 
-			var wg sync.WaitGroup
-			wg.Add(2)
-
-			repository.DBMutex.Lock()
-			go func() {
-				defer wg.Done()
-				// 向评论信息表中插入相应的评论记录
-				repository.GlobalDB.Create(&newCommentDao)
-			}()
-			go func() {
-				defer wg.Done()
-				var video repository.VideoDao
-				// 更新视频信息表中相应视频的评论数加一
-				repository.GlobalDB.Where("id = ?", videoId).First(&video).Update("comment_count", video.CommentCount+1)
-			}()
-			wg.Wait()
-			repository.DBMutex.Unlock()
-
-			c.JSON(http.StatusOK, CommentActionResponse{Response: Response{StatusCode: 0},
-				Comment: Comment{
-					Id:         newCommentDao.Id,
+			// 服务没出错则返回正常响应
+			c.JSON(http.StatusOK, CommentActionResponse{Response: global.Response{StatusCode: 0},
+				Comment: global.Comment{
+					Id:         commentId,
 					User:       user,
 					Content:    text,
 					CreateDate: createDate,
@@ -77,28 +53,18 @@ func CommentAction(c *gin.Context) {
 		} else if actionType == "2" {
 			commentIdStr := c.Query("comment_id")
 			commentId, _ := strconv.ParseInt(commentIdStr, 10, 64)
-
-			var wg sync.WaitGroup
-			wg.Add(2)
-
-			repository.DBMutex.Lock()
-			go func() {
-				defer wg.Done()
-				// 如果是取消评论，则从评论信息表中删除相应的记录
-				repository.GlobalDB.Where("id = ?", commentId).Delete(&repository.CommentDao{})
-			}()
-			go func() {
-				defer wg.Done()
-				var video repository.VideoDao
-				// 更新视频信息表中相应视频的评论数减一
-				repository.GlobalDB.Where("id = ?", videoId).First(&video).Update("comment_count", video.CommentCount-1)
-			}()
-			wg.Wait()
-			repository.DBMutex.Unlock()
+			// 如果是取消评论行为，调用service层的取消评论服务
+			errMsg := service.CancelComment(commentId, videoId)
+			// 如果服务出错，返回错误信息响应
+			if errMsg != "" {
+				c.JSON(http.StatusOK, global.Response{StatusCode: 1, StatusMsg: errMsg})
+				return
+			}
 		}
-		c.JSON(http.StatusOK, Response{StatusCode: 0})
+		// 服务没出错则返回正常响应
+		c.JSON(http.StatusOK, global.Response{StatusCode: 0})
 	} else {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "User doesn't exist"})
+		c.JSON(http.StatusOK, global.Response{StatusCode: 1, StatusMsg: "User doesn't exist"})
 	}
 }
 
@@ -107,25 +73,18 @@ func CommentList(c *gin.Context) {
 	videoIdStr := c.Query("video_id")
 	videoId, _ := strconv.ParseInt(videoIdStr, 10, 64)
 
-	// 从评论信息表中根据视频id获取按发布时间倒序的所有评论
-	var comments []repository.CommentDao
-	repository.DBMutex.Lock()
-	repository.GlobalDB.Where("video_id = ?", videoId).Order("publish_time desc").Find(&comments)
-	repository.DBMutex.Unlock()
-
-	// 从记录账号信息的map中获取发布评论的User信息，返回相应的评论列表
-	var commentList []Comment
-	for _, commentDao := range comments {
-		commentList = append(commentList, Comment{
-			Id:         commentDao.Id,
-			User:       usersLoginInfo[userIdToToken[commentDao.UserId]],
-			Content:    commentDao.Content,
-			CreateDate: commentDao.CreateDate,
+	// 根据视频Id调用service层的获取视频所有评论服务
+	commentList, err := service.GetCommentList(videoId)
+	// 如果服务出错，返回服务器错误响应
+	if err != nil {
+		c.JSON(http.StatusOK, UserLoginResponse{
+			Response: global.Response{StatusCode: 1, StatusMsg: "Internal Server Error! Get comment list failed"},
 		})
+		return
 	}
 
 	c.JSON(http.StatusOK, CommentListResponse{
-		Response:    Response{StatusCode: 0},
+		Response:    global.Response{StatusCode: 0},
 		CommentList: commentList,
 	})
 }

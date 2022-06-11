@@ -3,25 +3,21 @@ package controller
 import (
 	"net/http"
 
-	"simple_tiktok/repository"
+	"simple_tiktok/global"
+	"simple_tiktok/service"
 
 	"github.com/gin-gonic/gin"
 )
 
-// usersLoginInfo use map to store user info, and key is username+password for demo
-// user data will be cleared every time the server starts
-var usersLoginInfo = map[string]User{} // 存储用户token与用户User结构体的对应关系
-var userIdToToken = map[int64]string{} // 存储用户Id与用户token的对应关系
-
 type UserLoginResponse struct {
-	Response
+	global.Response
 	UserId int64  `json:"user_id"`
 	Token  string `json:"token"`
 }
 
 type UserResponse struct {
-	Response
-	User User `json:"user"`
+	global.Response
+	User global.User `json:"user"`
 }
 
 // 注册行为
@@ -32,52 +28,40 @@ func Register(c *gin.Context) {
 	// 用户名和密码最长32个字符
 	if len(username) > 32 {
 		c.JSON(http.StatusOK, UserLoginResponse{
-			Response: Response{StatusCode: 1, StatusMsg: "The length of username should be less than 32"},
+			Response: global.Response{StatusCode: 1, StatusMsg: "The length of username should be less than 32"},
 		})
 		return
 	}
 	if len(password) > 32 {
 		c.JSON(http.StatusOK, UserLoginResponse{
-			Response: Response{StatusCode: 1, StatusMsg: "The length of password should be less than 32"},
+			Response: global.Response{StatusCode: 1, StatusMsg: "The length of password should be less than 32"},
 		})
 		return
 	}
 
 	// 根据用户名和密码获取token
-	token := username + SHA256(password)
+	token := service.GenerateToken(username, password)
 
 	// 如果用户已存在，直接返回注册失败
-	if _, exist := usersLoginInfo[token]; exist {
+	if _, exist := service.GetExistUserByToken(token); exist {
 		c.JSON(http.StatusOK, UserLoginResponse{
-			Response: Response{StatusCode: 1, StatusMsg: "User already exist"},
+			Response: global.Response{StatusCode: 1, StatusMsg: "User already exist"},
 		})
 	} else {
-		// 否则创建新用户信息并插入数据库的users表中
-		newUserDao := repository.UserDao{
-			Name:          username,
-			FollowCount:   0,
-			FollowerCount: 0,
-			IsFollow:      false,
-			Token:         token,
+		var newUserId int64
+		var err error
+		// 根据注册用户的用户名和token调用service层的注册用户服务，如果出错，返回服务器错误响应
+		if newUserId, err = service.RegisterUser(username, token); err != nil {
+			c.JSON(http.StatusOK, UserLoginResponse{
+				Response: global.Response{StatusCode: 1, StatusMsg: "Internal Server Error! User registers failed"},
+			})
+			return
 		}
-		repository.DBMutex.Lock()
-		repository.GlobalDB.Create(&newUserDao)
-		repository.DBMutex.Unlock()
 
-		// 记录用户token与用户User结构体的对应关系，插入数据库后，表中id为主键，可直接获取作为用户id
-		usersLoginInfo[token] = User{
-			Id:            newUserDao.Id,
-			Name:          username,
-			FollowCount:   0,
-			FollowerCount: 0,
-			IsFollow:      false,
-		}
-		// 记录用户Id与用户token的对应关系
-		userIdToToken[newUserDao.Id] = token
-
+		// 调用service层没出错则返回响应成功，以及返回用户Id和token
 		c.JSON(http.StatusOK, UserLoginResponse{
-			Response: Response{StatusCode: 0},
-			UserId:   newUserDao.Id,
+			Response: global.Response{StatusCode: 0},
+			UserId:   newUserId,
 			Token:    token,
 		})
 	}
@@ -89,19 +73,19 @@ func Login(c *gin.Context) {
 	password := c.Query("password")
 
 	// 根据用户名和密码获取token
-	token := username + SHA256(password)
+	token := service.GenerateToken(username, password)
 
-	// 如果用户存在，从usersLoginInfo中根据token取出用户信息并返回
-	if user, exist := usersLoginInfo[token]; exist {
+	// 如果用户存在，从service层取出用户信息并返回
+	if user, exist := service.GetExistUserByToken(token); exist {
 		c.JSON(http.StatusOK, UserLoginResponse{
-			Response: Response{StatusCode: 0},
+			Response: global.Response{StatusCode: 0},
 			UserId:   user.Id,
 			Token:    token,
 		})
 	} else {
-		// 找不到token则返回用户名或密码错误
+		// 在service层找不到token则返回用户名或密码错误
 		c.JSON(http.StatusOK, UserLoginResponse{
-			Response: Response{StatusCode: 1, StatusMsg: "Username or password is wrong"},
+			Response: global.Response{StatusCode: 1, StatusMsg: "Username or password is wrong"},
 		})
 	}
 }
@@ -109,43 +93,17 @@ func Login(c *gin.Context) {
 // 用户登录时，获取登录用户的信息
 func UserInfo(c *gin.Context) {
 	token := c.Query("token")
-	// userIdStr := c.Query("user_id")
-	// userId, _ := strconv.ParseInt(userIdStr, 10, 64)
 
-	// 如果用户存在，从usersLoginInfo中根据token取出用户信息并返回
-	if user, exist := usersLoginInfo[token]; exist {
+	// 如果用户存在，从service层取出用户信息并返回
+	if user, exist := service.GetExistUserByToken(token); exist {
 		c.JSON(http.StatusOK, UserResponse{
-			Response: Response{StatusCode: 0},
+			Response: global.Response{StatusCode: 0},
 			User:     user,
 		})
 	} else {
-		// 找不到token则返回用户不存在
+		// 在service层找不到token则返回用户不存在
 		c.JSON(http.StatusOK, UserResponse{
-			Response: Response{StatusCode: 1, StatusMsg: "User doesn't exist"},
+			Response: global.Response{StatusCode: 1, StatusMsg: "User doesn't exist"},
 		})
-	}
-}
-
-// 初始化存储账号信息的usersLoginInfo和userIdToToken
-func InitUserInfo() {
-	// 获取所有账号信息
-	var users []repository.UserDao
-
-	repository.DBMutex.Lock()
-	repository.GlobalDB.Find(&users)
-	repository.DBMutex.Unlock()
-
-	// 遍历所有账号
-	for _, user := range users {
-		// 存储每个账号的token和User的对应关系
-		usersLoginInfo[user.Token] = User{
-			Id:            user.Id,
-			Name:          user.Name,
-			FollowCount:   user.FollowCount,
-			FollowerCount: user.FollowerCount,
-			IsFollow:      false,
-		}
-		// 存储每个账号的Id和Token的对应关系
-		userIdToToken[user.Id] = user.Token
 	}
 }

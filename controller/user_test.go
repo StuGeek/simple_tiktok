@@ -3,6 +3,7 @@ package controller
 import (
 	"fmt"
 	"net/http"
+	"simple_tiktok/global"
 	"strconv"
 	"testing"
 	"time"
@@ -15,10 +16,11 @@ func BenchmarkRegister(b *testing.B) {
 	now := (int)(time.Now().Unix())
 
 	b.ResetTimer()
+	// 每次注册的用户名由当前时间加i组成，保证不会重复
 	for i := 0; i < b.N; i++ {
 		url := "douyin/user/register/?username=" + strconv.Itoa(now+i) + "&password=123456"
 
-		req, err := http.NewRequest(method, serverUrl+url, nil)
+		req, err := http.NewRequest(method, global.ServerUrl+url, nil)
 
 		if err != nil {
 			fmt.Println(err)
@@ -39,7 +41,7 @@ func BenchmarkLogin(b *testing.B) {
 	method := "POST"
 
 	client := &http.Client{}
-	req, err := http.NewRequest(method, serverUrl+url, nil)
+	req, err := http.NewRequest(method, global.ServerUrl+url, nil)
 
 	if err != nil {
 		fmt.Println(err)
@@ -47,6 +49,7 @@ func BenchmarkLogin(b *testing.B) {
 	}
 
 	b.ResetTimer()
+	// 重复登录user1的账号
 	for i := 0; i < b.N; i++ {
 		res, err := client.Do(req)
 		if err != nil {
@@ -62,7 +65,7 @@ func BenchmarkUserInfo(b *testing.B) {
 	method := "GET"
 
 	client := &http.Client{}
-	req, err := http.NewRequest(method, serverUrl+url, nil)
+	req, err := http.NewRequest(method, global.ServerUrl+url, nil)
 
 	if err != nil {
 		fmt.Println(err)
@@ -70,6 +73,7 @@ func BenchmarkUserInfo(b *testing.B) {
 	}
 
 	b.ResetTimer()
+	// 获取账号信息
 	for i := 0; i < b.N; i++ {
 		res, err := client.Do(req)
 		if err != nil {

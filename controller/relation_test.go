@@ -3,6 +3,7 @@ package controller
 import (
 	"fmt"
 	"net/http"
+	"simple_tiktok/global"
 	"testing"
 )
 
@@ -15,6 +16,7 @@ func BenchmarkRelationAction(b *testing.B) {
 	var req *http.Request
 	var err error
 
+	// 测试次数必须是偶数
 	n := b.N
 	if n == 0 || n == 1 {
 		return
@@ -23,8 +25,9 @@ func BenchmarkRelationAction(b *testing.B) {
 		n--
 	}
 
-	preUrl := serverUrl + url
+	preUrl := global.ServerUrl + url
 	b.ResetTimer()
+	// 交替关注和取消关注
 	for i := 0; i < b.N; i++ {
 		if i%2 == 0 {
 			req, err = http.NewRequest(method, preUrl+"1", nil)
@@ -50,7 +53,7 @@ func BenchmarkFollowList(b *testing.B) {
 	method := "GET"
 
 	client := &http.Client{}
-	req, err := http.NewRequest(method, serverUrl+url, nil)
+	req, err := http.NewRequest(method, global.ServerUrl+url, nil)
 
 	if err != nil {
 		fmt.Println(err)
@@ -58,6 +61,7 @@ func BenchmarkFollowList(b *testing.B) {
 	}
 
 	b.ResetTimer()
+	// 获取关注列表
 	for i := 0; i < b.N; i++ {
 		res, err := client.Do(req)
 		if err != nil {
@@ -73,7 +77,7 @@ func BenchmarkFollowerList(b *testing.B) {
 	method := "GET"
 
 	client := &http.Client{}
-	req, err := http.NewRequest(method, serverUrl+url, nil)
+	req, err := http.NewRequest(method, global.ServerUrl+url, nil)
 
 	if err != nil {
 		fmt.Println(err)
@@ -81,6 +85,7 @@ func BenchmarkFollowerList(b *testing.B) {
 	}
 
 	b.ResetTimer()
+	// 获取粉丝列表
 	for i := 0; i < b.N; i++ {
 		res, err := client.Do(req)
 		if err != nil {

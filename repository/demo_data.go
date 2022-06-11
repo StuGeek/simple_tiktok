@@ -1,7 +1,7 @@
-package controller
+package repository
 
 import (
-	"simple_tiktok/repository"
+	"simple_tiktok/global"
 	"sync"
 )
 
@@ -12,34 +12,34 @@ func InitDemoData() {
 
 	go func() {
 		defer wg.Done()
-		repository.GlobalDB.Where("1 = 1").Delete(&repository.UserDao{})
-		repository.GlobalDB.Create(&DemoUser)
+		GlobalDB.Where("1 = 1").Delete(&UserDao{})
+		GlobalDB.Create(&DemoUser)
 	}()
 	go func() {
 		defer wg.Done()
-		repository.GlobalDB.Where("1 = 1").Delete(&repository.VideoDao{})
-		repository.GlobalDB.Create(&DemoVideos)
+		GlobalDB.Where("1 = 1").Delete(&VideoDao{})
+		GlobalDB.Create(&DemoVideos)
 	}()
 	go func() {
 		defer wg.Done()
-		repository.GlobalDB.Where("1 = 1").Delete(&repository.FavoriteVideoDao{})
-		repository.GlobalDB.Create(&DemoFavoriteVideos)
+		GlobalDB.Where("1 = 1").Delete(&FavoriteDao{})
+		GlobalDB.Create(&DemoFavoriteVideos)
 	}()
 	go func() {
 		defer wg.Done()
-		repository.GlobalDB.Where("1 = 1").Delete(&repository.CommentDao{})
-		repository.GlobalDB.Create(&DemoComments)
+		GlobalDB.Where("1 = 1").Delete(&CommentDao{})
+		GlobalDB.Create(&DemoComments)
 	}()
 	go func() {
 		defer wg.Done()
-		repository.GlobalDB.Where("1 = 1").Delete(&repository.FollowDao{})
-		repository.GlobalDB.Create(&DemoFollows)
+		GlobalDB.Where("1 = 1").Delete(&RelationDao{})
+		GlobalDB.Create(&DemoRelations)
 	}()
 
 	wg.Wait()
 }
 
-var DemoUser = []repository.UserDao{
+var DemoUser = []UserDao{
 	{
 		Id:            1,
 		Name:          "user1",
@@ -82,11 +82,11 @@ var DemoUser = []repository.UserDao{
 	},
 }
 
-var DemoVideos = []repository.VideoDao{
+var DemoVideos = []VideoDao{
 	{
 		Id:            1,
 		AuthorId:      DemoUser[0].Id,
-		PlayUrl:       serverUrl + "static/bear.mp4",
+		PlayUrl:       global.ServerUrl + "static/bear.mp4",
 		CoverUrl:      "https://cdn.pixabay.com/photo/2016/03/27/18/10/bear-1283347_1280.jpg",
 		FavoriteCount: 3,
 		CommentCount:  1,
@@ -426,7 +426,7 @@ var DemoVideos = []repository.VideoDao{
 	},
 }
 
-var DemoFavoriteVideos = []repository.FavoriteVideoDao{
+var DemoFavoriteVideos = []FavoriteDao{
 	{Token: "user368487dc295052aa79c530e283ce698b8c6bb1b42ff0944252e1910dbecdc5425", VideoId: 31},
 	{Token: "user469f7f7a7f8bca9970fa6f9c0b8dad06901d3ef23fd599d3213aa5eee5621c3e3", VideoId: 31},
 	{Token: "user5af41e68e1309fa29a5044cbdc36b90a3821d8807e68c7675a6c495112bc8a55f", VideoId: 31},
@@ -441,7 +441,7 @@ var DemoFavoriteVideos = []repository.FavoriteVideoDao{
 	{Token: "user469f7f7a7f8bca9970fa6f9c0b8dad06901d3ef23fd599d3213aa5eee5621c3e3", VideoId: 1},
 }
 
-var DemoComments = []repository.CommentDao{
+var DemoComments = []CommentDao{
 	{
 		Id:          1,
 		UserId:      DemoUser[0].Id,
@@ -524,7 +524,7 @@ var DemoComments = []repository.CommentDao{
 	},
 }
 
-var DemoFollows = []repository.FollowDao{
+var DemoRelations = []RelationDao{
 	{UserId: DemoUser[0].Id, ToUserId: DemoUser[1].Id},
 	{UserId: DemoUser[1].Id, ToUserId: DemoUser[2].Id},
 	{UserId: DemoUser[2].Id, ToUserId: DemoUser[3].Id},
