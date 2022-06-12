@@ -17,7 +17,7 @@ func PublishComment(userId int64, videoId int64, content string) (int64, string,
 	}
 
 	// 评论数不能超过单个视频的评论最大值
-	if commentCount >= global.MaxCommentCount {
+	if global.MaxCommentCount != -1 && commentCount >= global.MaxCommentCount {
 		return 0, "", "The number of comments of the video has reached the maximum"
 	}
 

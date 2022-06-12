@@ -82,9 +82,9 @@ func QueryCommentCountByVideoId(videoId int64) (int64, error) {
 }
 
 // 向videos表中插入一条视频
-func CreateVideo(authorId int64, finalName string, title string) {
+func CreateVideo(authorId int64, finalName string, title string) error {
 	// 将视频信息存入数据库中，投稿时间为当前时间
-	GlobalDB.Create(&VideoDao{
+	newVideoDao := VideoDao{
 		AuthorId:      authorId,
 		PlayUrl:       global.ServerUrl + "static/" + finalName,
 		FavoriteCount: 0,
@@ -92,7 +92,13 @@ func CreateVideo(authorId int64, finalName string, title string) {
 		IsFavorite:    false,
 		Title:         title,
 		PublishTime:   time.Now().Unix(),
-	})
+	}
+	if err := GlobalDB.Create(&newVideoDao).Error; err != nil {
+		fmt.Println("Create video failed!", err)
+		return err
+	}
+
+	return nil
 }
 
 // 根据视频Id给这个视频的点赞数加一

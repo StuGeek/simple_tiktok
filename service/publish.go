@@ -30,7 +30,9 @@ func PublishVideoAction(token string, c *gin.Context) (string, error) {
 	// 获取视频标题
 	title := c.PostForm("title")
 	// 将视频信息存入数据库中，投稿时间为当前时间
-	repository.CreateVideo(userId, finalName, title)
+	if err := repository.CreateVideo(userId, finalName, title); err != nil {
+		return "", err
+	}
 
 	return finalName, nil
 }
