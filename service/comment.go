@@ -9,13 +9,24 @@ import (
 
 // 根据发布评论的用户Id，视频Id，评论内容发布评论，返回发布的评论Id，创建日期，和可能的错误信息
 func PublishComment(userId int64, videoId int64, content string) (int64, string, string) {
+	var commentCount int64
+	var err error = nil
+	commentCount, err = repository.QueryCommentCountByVideoId(videoId)
+	if err != nil {
+		return 0, "", "Internal Server Error! Query comment count failed"
+	}
+
+	// 评论数不能超过单个视频的评论最大值
+	if commentCount >= global.MaxCommentCount {
+		return 0, "", "The number of comments of the video has reached the maximum"
+	}
+
 	// 获取当前日期，当前时间
 	now := time.Now()
 	createDate := now.Format("01-02")
 	publishTime := now.Unix()
 
 	var newCommentId int64
-	var err error = nil
 	var errMsg string = ""
 
 	var wg sync.WaitGroup

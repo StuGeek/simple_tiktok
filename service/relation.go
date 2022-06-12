@@ -16,6 +16,16 @@ func FollowAction(userToken string, toUserId int64) string {
 		return "User can't build relation with himself"
 	}
 
+	followCount, err := repository.QueryFollowCountByUserId(userId)
+	if err != nil {
+		return "Internal Server Error! Query follow count failed"
+	}
+
+	// 关注数不能超过单个用户的关注用户最大值
+	if followCount >= global.MaxFollowUserCount {
+		return "The number of follow count of the user has reached the maximum"
+	}
+
 	var errMsg string = ""
 
 	var wg sync.WaitGroup

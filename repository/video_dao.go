@@ -63,6 +63,24 @@ func QueryVideoByAuthorId(authorId int64) ([]VideoDao, error) {
 	return videoList, nil
 }
 
+// 根据视频Id查询视频的评论数
+func QueryCommentCountByVideoId(videoId int64) (int64, error) {
+	var video VideoDao
+	err := GlobalDB.Where("id = ?", videoId).First(&video).Error
+	if err != nil {
+		// 如果没找到视频就返回0和nil
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			fmt.Println("video record not found!", err)
+			return 0, nil
+		} else {
+			fmt.Println("QueryCommentCountByVideoId(int64) failed!", err)
+			return 0, err
+		}
+	}
+
+	return video.CommentCount, nil
+}
+
 // 向videos表中插入一条视频
 func CreateVideo(authorId int64, finalName string, title string) {
 	// 将视频信息存入数据库中，投稿时间为当前时间

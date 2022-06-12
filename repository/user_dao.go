@@ -44,6 +44,24 @@ func QueryAllUser() ([]UserDao, error) {
 	return users, nil
 }
 
+// 根据用户Id查询用户的关注数
+func QueryFollowCountByUserId(userId int64) (int64, error) {
+	var user UserDao
+	err := GlobalDB.Where("id = ?", userId).First(&user).Error
+	if err != nil {
+		// 如果没找到用户就返回0和nil
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			fmt.Println("user record not found!", err)
+			return 0, nil
+		} else {
+			fmt.Println("QueryFollowCountByUserId(int64) failed!", err)
+			return 0, err
+		}
+	}
+
+	return user.FollowCount, nil
+}
+
 // 根据用户名和token创建用户，并返回创建的用户Id
 func CreateUser(username string, token string) (int64, error) {
 	newUserDao := UserDao{Name: username, Token: token}
