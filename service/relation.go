@@ -22,7 +22,7 @@ func FollowAction(userToken string, toUserId int64) string {
 	}
 
 	// 关注数不能超过单个用户的关注用户最大值
-	if global.MaxFollowUserCount != -1 && followCount >= global.MaxFollowUserCount {
+	if global.MaxFollowUserCount < 0 && followCount >= global.MaxFollowUserCount {
 		return "The number of follow count of the user has reached the maximum"
 	}
 
