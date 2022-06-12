@@ -6,7 +6,7 @@ import (
 	"sync"
 )
 
-// 获取投稿时间不晚于lastestTime的投稿视频，按投稿时间倒序排列，最多30个
+// 获取投稿时间不晚于lastestTime的投稿视频，按投稿时间倒序排列，最多30个，返回视频列表和下次请求时的latest_time
 func GetFeedVideoList(latestTime int64, token string) ([]global.Video, int64, error) {
 	var videos []repository.VideoDao
 	var favoriteVideoInfo map[int64]global.Video
