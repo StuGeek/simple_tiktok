@@ -7,10 +7,32 @@ import (
 	"simple_tiktok/repository"
 )
 
-// 注册用户，并返回注册的用户Id
-func RegisterUser(username string, token string) (int64, error) {
-	newUserId, err := repository.CreateUser(username, token)
-	return newUserId, err
+// 注册用户，并返回注册的用户Id和登录凭证和可能的错误信息
+func RegisterUser(username string, password string) (int64, string, string) {
+	// 用户名和密码不能为空
+	if len(username) == 0 || len(password) == 0 {
+		return 0, "", "The username or password can't not be empty"
+	}
+
+	// 用户名和密码最长32个字符
+	if len(username) > 32 {
+		return 0, "", "The length of username should be less than 32"
+	}
+	if len(password) > 32 {
+		return 0, "", "The length of password should be less than 32"
+	}
+
+	// 根据用户名和密码获取token
+	token := GenerateToken(username, password)
+
+	// 如果用户已存在，直接返回注册失败
+	if _, exist := GetExistUserByToken(token); exist {
+		return 0, "", "User already exist"
+	}
+
+	// 在数据库中创建用户的记录
+	newUserId, errMsg := repository.CreateUser(username, token)
+	return newUserId, token, errMsg
 }
 
 // 初始化存储账号信息的usersLoginInfo和userIdToToken

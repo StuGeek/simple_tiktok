@@ -25,53 +25,24 @@ func Register(c *gin.Context) {
 	username := c.Query("username")
 	password := c.Query("password")
 
-	if len(username) == 0 || len(password) == 0 {
+	var newUserId int64
+	var token string
+	var errMsg string
+
+	// 注册失败则返回错误信息
+	newUserId, token, errMsg = service.RegisterUser(username, password)
+	if errMsg != "" {
 		c.JSON(http.StatusOK, UserLoginResponse{
-			Response: global.Response{StatusCode: 1, StatusMsg: "The username or password can't not be empty"},
+			Response: global.Response{StatusCode: 1, StatusMsg: errMsg},
 		})
-		return
 	}
 
-	// 用户名和密码最长32个字符
-	if len(username) > 32 {
-		c.JSON(http.StatusOK, UserLoginResponse{
-			Response: global.Response{StatusCode: 1, StatusMsg: "The length of username should be less than 32"},
-		})
-		return
-	}
-	if len(password) > 32 {
-		c.JSON(http.StatusOK, UserLoginResponse{
-			Response: global.Response{StatusCode: 1, StatusMsg: "The length of password should be less than 32"},
-		})
-		return
-	}
-
-	// 根据用户名和密码获取token
-	token := service.GenerateToken(username, password)
-
-	// 如果用户已存在，直接返回注册失败
-	if _, exist := service.GetExistUserByToken(token); exist {
-		c.JSON(http.StatusOK, UserLoginResponse{
-			Response: global.Response{StatusCode: 1, StatusMsg: "User already exist"},
-		})
-	} else {
-		var newUserId int64
-		var err error
-		// 根据注册用户的用户名和token调用service层的注册用户服务，如果出错，返回服务器错误响应
-		if newUserId, err = service.RegisterUser(username, token); err != nil {
-			c.JSON(http.StatusOK, UserLoginResponse{
-				Response: global.Response{StatusCode: 1, StatusMsg: "Internal Server Error! User registers failed"},
-			})
-			return
-		}
-
-		// 调用service层没出错则返回响应成功，以及返回用户Id和token
-		c.JSON(http.StatusOK, UserLoginResponse{
-			Response: global.Response{StatusCode: 0},
-			UserId:   newUserId,
-			Token:    token,
-		})
-	}
+	// 调用service层没出错则返回响应成功，以及返回用户Id和token
+	c.JSON(http.StatusOK, UserLoginResponse{
+		Response: global.Response{StatusCode: 0},
+		UserId:   newUserId,
+		Token:    token,
+	})
 }
 
 // 登录行为

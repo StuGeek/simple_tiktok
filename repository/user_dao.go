@@ -63,11 +63,11 @@ func QueryFollowCountByUserId(userId int64) (int64, error) {
 }
 
 // 根据用户名和token创建用户，并返回创建的用户Id
-func CreateUser(username string, token string) (int64, error) {
+func CreateUser(username string, token string) (int64, string) {
 	newUserDao := UserDao{Name: username, Token: token}
 	if err := GlobalDB.Create(&newUserDao).Error; err != nil {
 		fmt.Println("Create user failed!", err)
-		return 0, err
+		return 0, "Create user failed!"
 	}
 
 	newUserId := newUserDao.Id
@@ -76,7 +76,7 @@ func CreateUser(username string, token string) (int64, error) {
 	// 记录用户Id与用户token的对应关系
 	SetUserIdToToken(newUserId, token)
 
-	return newUserId, nil
+	return newUserId, ""
 }
 
 // 根据用户Id给这个用户的关注数加一
