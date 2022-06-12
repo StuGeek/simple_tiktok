@@ -247,7 +247,7 @@ func (RelationDao) TableName() string {
 
 #### 1. 登录、注册功能
 
-注册时，首先判断用户名或密码是否超过32个字符，超过则直接返回注册失败，接着判断用户是否存在，如果用户已经存在，直接返回注册失败，否则将注册用户的用户名填入`Name`属性，用户名拼接加密的密码组成`Token`属性，`FollowCount`、`FollowerCount`为0，`IsFollow`为`false`构成的UserDao对象直接插入数据库中的`users`表中，并在`usersLoginInfo`和`userIdToToken`记录新注册用户的对应关系。
+注册时，首先判断用户名或密码是否超过32个字符，超过则直接返回注册失败，接着判断用户是否存在，如果用户已经存在，直接返回注册失败，否则将注册用户的用户名填入`Name`属性，用户名拼接加密的密码组成`Token`属性，`FollowCount`、`FollowerCount`为0，`IsFollow`为`false`构成的UserDao对象直接插入数据库中的`users`表中，并在`usersLoginInfo`和`userIdToToken`记录新注册用户的对应关系，在`usernameMap`中记录注册用户名。
 
 登录时，首先根据用户名拼接加密的密码组成token，然后在`usersLoginInfo`中搜索是否存在这个token，存在则可以从`usersLoginInfo`中根据token取出用户信息并返回，找不到token则返回用户不存在。
 

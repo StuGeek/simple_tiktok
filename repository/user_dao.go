@@ -12,6 +12,7 @@ import (
 // user data will be cleared every time the server starts
 var usersLoginInfo = map[string]global.User{} // 存储用户token与用户User结构体的对应关系
 var userIdToToken = map[int64]string{}        // 存储用户Id与用户token的对应关系
+var usernameMap = map[string]struct{}{}       // 存储用户名是否存在
 
 // 用户信息表users
 type UserDao struct {
@@ -75,6 +76,8 @@ func CreateUser(username string, token string) (int64, string) {
 	SetUsersLoginInfo(token, &global.User{Id: newUserId, Name: username})
 	// 记录用户Id与用户token的对应关系
 	SetUserIdToToken(newUserId, token)
+	// 记录注册用户名
+	SetUsernameMap(username)
 
 	return newUserId, ""
 }
@@ -177,6 +180,11 @@ func SetUserIdToToken(userId int64, token string) {
 	userIdToToken[userId] = token
 }
 
+// 设置用户名存在
+func SetUsernameMap(username string) {
+	usernameMap[username] = struct{}{}
+}
+
 // 通过用户token获取用户的User结构体
 func GetUserByToken(token string) (global.User, bool) {
 	user, exist := usersLoginInfo[token]
@@ -213,4 +221,10 @@ func GetUserTokenById(userId int64) (string, bool) {
 	}
 
 	return "", false
+}
+
+// 判断用户名是否已存在
+func IsUsernameExist(username string) bool {
+	_, exist := usernameMap[username]
+	return exist
 }

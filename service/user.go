@@ -22,10 +22,14 @@ func RegisterUser(username string, password string) (int64, string, string) {
 		return 0, "", "The length of password should be less than 32"
 	}
 
+	// 如果用户已存在，直接返回注册失败
+	if exist := repository.IsUsernameExist(username); exist {
+		return 0, "", "User already exist"
+	}
+
 	// 根据用户名和密码获取token
 	token := GenerateToken(username, password)
-
-	// 如果用户已存在，直接返回注册失败
+	// 如果登录凭证已存在，直接返回注册失败，保证登录凭证不重复
 	if _, exist := GetExistUserByToken(token); exist {
 		return 0, "", "User already exist"
 	}
@@ -55,6 +59,8 @@ func InitUserInfo() {
 		})
 		// 存储每个账号的Id和Token的对应关系
 		repository.SetUserIdToToken(user.Id, user.Token)
+		// 设置已存在的用户名
+		repository.SetUsernameMap(user.Name)
 	}
 }
 
