@@ -357,7 +357,7 @@ func (RelationDao) TableName() string {
 
 ![请添加图片描述](https://img-blog.csdnimg.cn/e9c478022d08470a87dda2d520b58ad9.gif)
 
-用户test1在登录状态下，进行投稿，选择了本地的椰子视频，视频内容为good，投稿完成后，重新打开软件拉取视频流，可以看到，第一个视频就是刚刚投稿的视频，将服务器停止后，重新打开服务器，要在`repository/db_init.go`中设置使用的数据库名`SqlDBName`为Demo数据库`demo_simple_tiktok`，然后在终端输入`go run main.go router.go`，重新启动服务器，再打开软件，看到第一个视频仍是刚刚投稿的视频，说明视频保存在了本地，路径保存在了数据库中，实现了持久化存储。
+用户test1在登录状态下，进行投稿，选择了本地的椰子视频，视频内容为good，投稿完成后，重新打开软件拉取视频流，可以看到，第一个视频就是刚刚投稿的视频，将服务器停止后，重新打开服务器，要在`global/config.go`中设置使用的数据库名`SqlDBName`为Demo数据库`demo_simple_tiktok`，然后在终端输入`go run main.go router.go`，重新启动服务器，再打开软件，看到第一个视频仍是刚刚投稿的视频，说明视频保存在了本地，路径保存在了数据库中，实现了持久化存储。
 
 ### 4. 个人信息
 
