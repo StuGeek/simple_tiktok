@@ -25,6 +25,13 @@ func Register(c *gin.Context) {
 	username := c.Query("username")
 	password := c.Query("password")
 
+	if len(username) == 0 || len(password) == 0 {
+		c.JSON(http.StatusOK, UserLoginResponse{
+			Response: global.Response{StatusCode: 1, StatusMsg: "The username or password can't not be empty"},
+		})
+		return
+	}
+
 	// 用户名和密码最长32个字符
 	if len(username) > 32 {
 		c.JSON(http.StatusOK, UserLoginResponse{
