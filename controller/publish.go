@@ -18,21 +18,12 @@ type VideoListResponse struct {
 // 发布视频行为，需要用户是登录状态
 func Publish(c *gin.Context) {
 	token := c.PostForm("token")
-	// 判断是否处于登录状态，不是则直接返回，取消发布视频
-	if _, exist := service.GetExistUserByToken(token); !exist {
-		c.JSON(http.StatusOK, global.Response{StatusCode: 1, StatusMsg: "User doesn't exist"})
-		return
-	}
 
 	var finalName string
-	var err error
-
+	var errMsg string
 	// 调用service层的发布视频服务，并获取保存的视频文件名，如果出错，返回错误响应
-	if finalName, err = service.PublishVideoAction(token, c); err != nil {
-		c.JSON(http.StatusOK, global.Response{
-			StatusCode: 1,
-			StatusMsg:  err.Error(),
-		})
+	if finalName, errMsg = service.PublishVideoAction(token, c); errMsg != "" {
+		c.JSON(http.StatusOK, global.Response{StatusCode: 1, StatusMsg: errMsg})
 		return
 	}
 
@@ -43,23 +34,28 @@ func Publish(c *gin.Context) {
 	})
 }
 
-// 根据user_id返回发布作品列表
+// 根据token和user_id返回发布作品列表
 func PublishList(c *gin.Context) {
+	token := c.Query("token")
 	userIdStr := c.Query("user_id")
-	userId, _ := strconv.ParseInt(userIdStr, 10, 64)
-
-	// 根据用户id调用service层的获取用户发布的视频列表服务，如果出错，返回服务器错误响应
-	videoList, err := service.GetPublishListById(userId)
+	userId, err := strconv.ParseInt(userIdStr, 10, 64)
 	if err != nil {
-		c.JSON(http.StatusOK, global.Response{StatusCode: 1, StatusMsg: "Internal Server Error! Get publish list failed"})
+		c.JSON(http.StatusOK, global.Response{StatusCode: 1, StatusMsg: "Get userId error"})
+		return
+	}
+
+	// 根据token和用户id调用service层的获取用户发布的视频列表服务，如果出错，返回服务器错误响应
+	videoList, errMsg := service.GetPublishList(token, userId)
+	if errMsg != "" {
+		c.JSON(http.StatusOK, VideoListResponse{
+			Response: global.Response{StatusCode: 1, StatusMsg: errMsg},
+		})
 		return
 	}
 
 	// 调用service层没出错则返回响应成功和作品视频列表
 	c.JSON(http.StatusOK, VideoListResponse{
-		Response: global.Response{
-			StatusCode: 0,
-		},
+		Response:  global.Response{StatusCode: 0},
 		VideoList: videoList,
 	})
 }

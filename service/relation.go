@@ -7,26 +7,22 @@ import (
 )
 
 // 关注行为，返回可能的错误信息
-func FollowAction(userToken string, toUserId int64) string {
-	// 从存储账号信息map中根据token获取登录用户的Id
-	userId, _ := repository.GetUserIdByToken(userToken)
+func FollowAction(token string, toUserId int64) string {
+	// 用户要处于登录状态，登录凭证需要有效
+	user, errMsg := GetUserByToken(token)
+	if errMsg != "" {
+		return errMsg
+	}
 
 	// 用户不能关注或取关自己
-	if userId == toUserId {
+	if user.Id == toUserId {
 		return "User can't build relation with himself"
 	}
 
-	followCount, err := repository.QueryFollowCountByUserId(userId)
-	if err != nil {
-		return "Internal Server Error! Query follow count failed"
-	}
-
 	// 关注数不能超过单个用户的关注用户最大值
-	if global.MaxFollowUserCount < 0 && followCount >= global.MaxFollowUserCount {
+	if global.MaxFollowUserCount >= 0 && user.FollowCount >= global.MaxFollowUserCount {
 		return "The number of follow count of the user has reached the maximum"
 	}
-
-	var errMsg string = ""
 
 	var wg sync.WaitGroup
 	wg.Add(3)
@@ -34,7 +30,7 @@ func FollowAction(userToken string, toUserId int64) string {
 	go func() {
 		defer wg.Done()
 		// 在关系信息表中创建相应的记录，如果创建失败，记录错误信息
-		err := repository.CreateRelation(userId, toUserId)
+		err := repository.CreateRelation(user.Id, toUserId)
 		if err != nil {
 			errMsg = "Internal Server Error! Create relation failed"
 		}
@@ -42,7 +38,7 @@ func FollowAction(userToken string, toUserId int64) string {
 	go func() {
 		defer wg.Done()
 		// 在用户信息表中更新关注用户的关注数，如果更新失败，记录错误信息
-		err := repository.AddOneFollowCountById(userId)
+		err := repository.AddOneFollowCountById(user.Id)
 		if err != nil {
 			errMsg = "Internal Server Error! Add one follow count failed"
 		}
@@ -67,16 +63,17 @@ func FollowAction(userToken string, toUserId int64) string {
 }
 
 // 取消关注行为，返回可能的错误信息
-func CancelFollowAction(userToken string, toUserId int64) string {
-	// 从存储账号信息map中根据token获取登录用户的Id
-	userId, _ := repository.GetUserIdByToken(userToken)
-
-	// 用户不能关注或取关自己
-	if userId == toUserId {
-		return "User can't build relation with himself"
+func CancelFollowAction(token string, toUserId int64) string {
+	// 用户要处于登录状态，登录凭证需要有效
+	user, errMsg := GetUserByToken(token)
+	if errMsg != "" {
+		return errMsg
 	}
 
-	var errMsg string = ""
+	// 用户不能关注或取关自己
+	if user.Id == toUserId {
+		return "User can't build relation with himself"
+	}
 
 	var wg sync.WaitGroup
 	wg.Add(3)
@@ -84,7 +81,7 @@ func CancelFollowAction(userToken string, toUserId int64) string {
 	go func() {
 		defer wg.Done()
 		// 如果是取消关注行为，从关注信息表中删除相应的记录，如果删除失败，记录错误信息
-		err := repository.DeleteRelation(userId, toUserId)
+		err := repository.DeleteRelation(user.Id, toUserId)
 		if err != nil {
 			errMsg = "Internal Server Error! Delete relation failed"
 		}
@@ -92,7 +89,7 @@ func CancelFollowAction(userToken string, toUserId int64) string {
 	go func() {
 		defer wg.Done()
 		// 在用户信息表中更新关注用户的关注数，如果更新失败，记录错误信息
-		err := repository.SubOneFollowCountById(userId)
+		err := repository.SubOneFollowCountById(user.Id)
 		if err != nil {
 			errMsg = "Internal Server Error! Sub one follow count failed"
 		}
@@ -116,76 +113,124 @@ func CancelFollowAction(userToken string, toUserId int64) string {
 	return ""
 }
 
-// 根据用户Id返回关注列表
-func GetFollowUserList(userId int64) ([]global.User, error) {
-	// 获取所有这个用户关注的用户
-	follows, err := repository.QueryAllFollowsById(userId)
-	if err != nil {
-		return []global.User{}, err
-	}
-
-	// 将所有关注的用户加入userList中，并设置IsFollow属性为true最后返回
-	var userList []global.User
-	for _, relationDao := range follows {
-		followUser, _ := repository.GetUserById(relationDao.ToUserId)
-		userList = append(userList, global.User{
-			Id:            followUser.Id,
-			Name:          followUser.Name,
-			FollowCount:   followUser.FollowCount,
-			FollowerCount: followUser.FollowerCount,
-			IsFollow:      true,
-		})
-	}
-
-	return userList, nil
-}
-
-// 根据用户Id返回粉丝列表
-func GetFollowerUserList(userId int64) ([]global.User, error) {
-	var followList = make(map[int64]struct{})
-	var followerList []repository.RelationDao
-	var err error
+// 根据token和查看用户的Id返回关注列表
+func GetFollowUserList(token string, checkUserId int64) ([]global.User, string) {
+	var tokenUserFollowMap = make(map[int64]struct{})
+	var checkUserFollowList []repository.UserDao
+	var errMsg string = ""
 
 	var wg sync.WaitGroup
 	wg.Add(2)
 
 	go func() {
 		defer wg.Done()
-		// 获取这个用户关注的所有用户
-		var follows []repository.RelationDao
-		follows, err = repository.QueryAllFollowsById(userId)
-		if err == nil {
-			// 存储关注用户的用户Id
-			for _, follow := range follows {
-				followList[follow.ToUserId] = struct{}{}
+		// 获取登录用户
+		user, errMsg := GetUserByToken(token)
+		// 查看关注列表可以不处在登录状态，不用返回错误信息
+		if errMsg == "" {
+			// 如果登录凭证有效，获取登录用户的关注列表
+			tokenUserFollowList, err := repository.QueryFollowUserListById(user.Id)
+			if err != nil {
+				errMsg = "Internal Server Error! Query follow users failed"
+			} else {
+				// 记录登录用户关注的用户Id
+				for _, follow := range tokenUserFollowList {
+					tokenUserFollowMap[follow.Id] = struct{}{}
+				}
 			}
+
 		}
 	}()
 	go func() {
 		defer wg.Done()
-		// 获取所有关注这个用户的用户
-		followerList, err = repository.QueryAllFollowersById(userId)
+		var err error
+		// 获取查看的这个用户的关注列表
+		checkUserFollowList, err = repository.QueryFollowUserListById(checkUserId)
+		if err != nil {
+			errMsg = "Internal Server Error! Query follow users failed"
+		}
 	}()
+
 	wg.Wait()
 
-	if err != nil {
-		return []global.User{}, err
+	if errMsg != "" {
+		return nil, errMsg
 	}
 
-	// 将所有这个用户的粉丝加入userList中并最后返回
+	// 将所有关注的用户加入userList中，并根据登录用户是否关注设置IsFollow属性最后返回
 	var userList []global.User
-	for _, followerDao := range followerList {
-		followerUser, _ := repository.GetUserById(followerDao.UserId)
-		// 获取这个用户是否关注了他的粉丝
-		_, isFollow := followList[followerUser.Id]
+	for _, followUser := range checkUserFollowList {
+		// 获取登录用户是否关注了查看用户的关注者
+		_, isFollow := tokenUserFollowMap[followUser.Id]
 		userList = append(userList, global.User{
-			Id:            followerUser.Id,
-			Name:          followerUser.Name,
-			FollowCount:   followerUser.FollowCount,
-			FollowerCount: followerUser.FollowerCount,
+			Id:            followUser.Id,
+			Name:          followUser.Name,
+			FollowCount:   followUser.FollowCount,
+			FollowerCount: followUser.FollowerCount,
 			IsFollow:      isFollow,
 		})
 	}
 
-	return userList, nil
+	return userList, ""
+}
+
+// 根据token和查看用户的Id返回粉丝列表
+func GetFollowerUserList(token string, checkUserId int64) ([]global.User, string) {
+	var tokenUserFollowMap = make(map[int64]struct{})
+	var checkUserFollowerList []repository.UserDao
+	var errMsg string = ""
+
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+		// 获取登录用户
+		user, errMsg := GetUserByToken(token)
+		// 查看关注列表可以不处在登录状态，不用返回错误信息
+		if errMsg == "" {
+			// 如果登录凭证有效，获取登录用户的关注列表
+			tokenUserFollowList, err := repository.QueryFollowUserListById(user.Id)
+			if err != nil {
+				errMsg = "Internal Server Error! Query follow users failed"
+			} else {
+				// 记录登录用户关注的用户Id
+				for _, follow := range tokenUserFollowList {
+					tokenUserFollowMap[follow.Id] = struct{}{}
+				}
+			}
+
+		}
+	}()
+	go func() {
+		defer wg.Done()
+		var err error
+		// 获取查看的这个用户的粉丝列表
+		checkUserFollowerList, err = repository.QueryFollowerUserListById(checkUserId)
+		if err != nil {
+			errMsg = "Internal Server Error! Query follower users failed"
+		}
+	}()
+
+	wg.Wait()
+
+	if errMsg != "" {
+		return nil, errMsg
+	}
+
+	// 将所有这个用户的粉丝加入userList中，并根据登录用户是否关注设置IsFollow属性最后返回
+	var userList []global.User
+	for _, follower := range checkUserFollowerList {
+		// 获取登录用户是否关注了查看用户的粉丝
+		_, isFollow := tokenUserFollowMap[follower.Id]
+		userList = append(userList, global.User{
+			Id:            follower.Id,
+			Name:          follower.Name,
+			FollowCount:   follower.FollowCount,
+			FollowerCount: follower.FollowerCount,
+			IsFollow:      isFollow,
+		})
+	}
+
+	return userList, ""
 }

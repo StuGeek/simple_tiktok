@@ -12,28 +12,28 @@ func InitDemoData() {
 
 	go func() {
 		defer wg.Done()
-		GlobalDB.Where("1 = 1").Delete(&UserDao{})
-		GlobalDB.Create(&DemoUser)
+		globalDB.Where("1 = 1").Delete(&UserDao{})
+		globalDB.Create(&DemoUser)
 	}()
 	go func() {
 		defer wg.Done()
-		GlobalDB.Where("1 = 1").Delete(&VideoDao{})
-		GlobalDB.Create(&DemoVideos)
+		globalDB.Where("1 = 1").Delete(&VideoDao{})
+		globalDB.Create(&DemoVideos)
 	}()
 	go func() {
 		defer wg.Done()
-		GlobalDB.Where("1 = 1").Delete(&FavoriteDao{})
-		GlobalDB.Create(&DemoFavoriteVideos)
+		globalDB.Where("1 = 1").Delete(&FavoriteDao{})
+		globalDB.Create(&DemoFavoriteVideos)
 	}()
 	go func() {
 		defer wg.Done()
-		GlobalDB.Where("1 = 1").Delete(&CommentDao{})
-		GlobalDB.Create(&DemoComments)
+		globalDB.Where("1 = 1").Delete(&CommentDao{})
+		globalDB.Create(&DemoComments)
 	}()
 	go func() {
 		defer wg.Done()
-		GlobalDB.Where("1 = 1").Delete(&RelationDao{})
-		GlobalDB.Create(&DemoRelations)
+		globalDB.Where("1 = 1").Delete(&RelationDao{})
+		globalDB.Create(&DemoRelations)
 	}()
 
 	wg.Wait()
@@ -41,44 +41,54 @@ func InitDemoData() {
 
 var DemoUser = []UserDao{
 	{
-		Id:            1,
-		Name:          "user1",
-		FollowCount:   1,
-		FollowerCount: 2,
-		IsFollow:      false,
-		Token:         "user1bcb15f821479b4d5772bd0ca866c00ad5f926e3580720659cc80d39c9d09802a",
+		Id:                1,
+		Name:              "user1",
+		FollowCount:       1,
+		FollowerCount:     2,
+		IsFollow:          false,
+		Password:          "96e79218965eb72c92a549dd5a330112",
+		Token:             "24c9e15e52afc47c225b757e7bee1f9d96e79218965eb72c92a549dd5a330112",
+		TokenLastUsedTime: 9999999999999,
 	},
 	{
-		Id:            2,
-		Name:          "user2",
-		FollowCount:   1,
-		FollowerCount: 1,
-		IsFollow:      false,
-		Token:         "user24cc8f4d609b717356701c57a03e737e5ac8fe885da8c7163d3de47e01849c635",
+		Id:                2,
+		Name:              "user2",
+		FollowCount:       1,
+		FollowerCount:     1,
+		IsFollow:          false,
+		Password:          "e3ceb5881a0a1fdaad01296d7554868d",
+		Token:             "7e58d63b60197ceb55a1c487989a3720e3ceb5881a0a1fdaad01296d7554868d",
+		TokenLastUsedTime: 9999999999999,
 	},
 	{
-		Id:            3,
-		Name:          "user3",
-		FollowCount:   1,
-		FollowerCount: 1,
-		IsFollow:      false,
-		Token:         "user368487dc295052aa79c530e283ce698b8c6bb1b42ff0944252e1910dbecdc5425",
+		Id:                3,
+		Name:              "user3",
+		FollowCount:       1,
+		FollowerCount:     1,
+		IsFollow:          false,
+		Password:          "1a100d2c0dab19c4430e7d73762b3423",
+		Token:             "92877af70a45fd6a2ed7fe81e1236b781a100d2c0dab19c4430e7d73762b3423",
+		TokenLastUsedTime: 9999999999999,
 	},
 	{
-		Id:            4,
-		Name:          "user4",
-		FollowCount:   2,
-		FollowerCount: 1,
-		IsFollow:      false,
-		Token:         "user469f7f7a7f8bca9970fa6f9c0b8dad06901d3ef23fd599d3213aa5eee5621c3e3",
+		Id:                4,
+		Name:              "user4",
+		FollowCount:       2,
+		FollowerCount:     1,
+		IsFollow:          false,
+		Password:          "73882ab1fa529d7273da0db6b49cc4f3",
+		Token:             "3f02ebe3d7929b091e3d8ccfde2f3bc673882ab1fa529d7273da0db6b49cc4f3",
+		TokenLastUsedTime: 9999999999999,
 	},
 	{
-		Id:            5,
-		Name:          "user5",
-		FollowCount:   1,
-		FollowerCount: 1,
-		IsFollow:      false,
-		Token:         "user5af41e68e1309fa29a5044cbdc36b90a3821d8807e68c7675a6c495112bc8a55f",
+		Id:                5,
+		Name:              "user5",
+		FollowCount:       1,
+		FollowerCount:     1,
+		IsFollow:          false,
+		Password:          "5b1b68a9abf4d2cd155c81a9225fd158",
+		Token:             "0a791842f52a0acfbb3a783378c066b85b1b68a9abf4d2cd155c81a9225fd158",
+		TokenLastUsedTime: 9999999999999,
 	},
 }
 
@@ -427,18 +437,18 @@ var DemoVideos = []VideoDao{
 }
 
 var DemoFavoriteVideos = []FavoriteDao{
-	{Token: "user368487dc295052aa79c530e283ce698b8c6bb1b42ff0944252e1910dbecdc5425", VideoId: 31},
-	{Token: "user469f7f7a7f8bca9970fa6f9c0b8dad06901d3ef23fd599d3213aa5eee5621c3e3", VideoId: 31},
-	{Token: "user5af41e68e1309fa29a5044cbdc36b90a3821d8807e68c7675a6c495112bc8a55f", VideoId: 31},
-	{Token: "user1bcb15f821479b4d5772bd0ca866c00ad5f926e3580720659cc80d39c9d09802a", VideoId: 30},
-	{Token: "user24cc8f4d609b717356701c57a03e737e5ac8fe885da8c7163d3de47e01849c635", VideoId: 30},
-	{Token: "user368487dc295052aa79c530e283ce698b8c6bb1b42ff0944252e1910dbecdc5425", VideoId: 29},
-	{Token: "user469f7f7a7f8bca9970fa6f9c0b8dad06901d3ef23fd599d3213aa5eee5621c3e3", VideoId: 29},
-	{Token: "user5af41e68e1309fa29a5044cbdc36b90a3821d8807e68c7675a6c495112bc8a55f", VideoId: 29},
-	{Token: "user5af41e68e1309fa29a5044cbdc36b90a3821d8807e68c7675a6c495112bc8a55f", VideoId: 2},
-	{Token: "user1bcb15f821479b4d5772bd0ca866c00ad5f926e3580720659cc80d39c9d09802a", VideoId: 1},
-	{Token: "user24cc8f4d609b717356701c57a03e737e5ac8fe885da8c7163d3de47e01849c635", VideoId: 1},
-	{Token: "user469f7f7a7f8bca9970fa6f9c0b8dad06901d3ef23fd599d3213aa5eee5621c3e3", VideoId: 1},
+	{UserId: 3, VideoId: 31},
+	{UserId: 4, VideoId: 31},
+	{UserId: 5, VideoId: 31},
+	{UserId: 1, VideoId: 30},
+	{UserId: 2, VideoId: 30},
+	{UserId: 3, VideoId: 29},
+	{UserId: 4, VideoId: 29},
+	{UserId: 5, VideoId: 29},
+	{UserId: 5, VideoId: 2},
+	{UserId: 1, VideoId: 1},
+	{UserId: 2, VideoId: 1},
+	{UserId: 4, VideoId: 1},
 }
 
 var DemoComments = []CommentDao{

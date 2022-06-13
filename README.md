@@ -102,37 +102,34 @@ go run main.go router.go --demo
 
 ### 数据库设计
 
-数据库使用的数据结构和交互相关的代码文件放在`repository`文件夹中，设计了5个表，分别是用户信息表`users`、视频信息表`videos`、评论信息表`comments`、点赞视频信息表`favorite_videos`、关系信息表`follows`。
+数据库使用的数据结构和交互相关的代码文件放在`repository`文件夹中，设计了5个表，分别是用户信息表`users`、视频信息表`videos`、评论信息表`comments`、点赞视频信息表`favorites`、关系信息表`relations`。
 
 #### 1. 用户信息表users
 
-用户信息表users使用到的用户信息结构体`UserDao`仿照程序使用的`global/common.go`文件中的用户结构体`User`进行设计，放在`repository/user_dao.go`文件中，设置用户ID为自增主键：
+用户信息表users使用到的用户信息结构体`UserDao`仿照程序使用的`global/common.go`文件中的用户结构体`User`进行设计，放在`repository/user_dao.go`文件中，设置用户ID为自增主键，密码经过加密存储在数据库中，token按照一定的规则生成，有一个过期时间，过了这个时间进行某些需要登录状态下的操作时会进行检验，重新进行登录才能继续进行操作：
 
 ```go
 // 用户信息表users
 type UserDao struct {
-	Id            int64  `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
-	Name          string `json:"name"`
-	FollowCount   int64  `json:"follow_count"`
-	FollowerCount int64  `json:"follower_count"`
-	IsFollow      bool   `json:"is_follow"`
-	Token         string `json:"token"`
+	Id                int64  `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
+	Name              string `json:"name"`
+	FollowCount       int64  `json:"follow_count" gorm:"default:0"`
+	FollowerCount     int64  `json:"follower_count" gorm:"default:0"`
+	IsFollow          bool   `json:"is_follow" gorm:"default:false"`
+	Password          string `json:"password"`
+	Token             string `json:"token"`
+	TokenLastUsedTime int64  `json:"token_last_used_time"`
 }
+
 
 func (UserDao) TableName() string {
 	return "users"
 }
 ```
 
-**索引选择：**
-
-其次有两个map，即`usersLoginInfo`和`userIdToToken`，分别存储用户token与用户User结构体的对应关系和存储用户Id与用户token的对应关系，每次启动程序时，都会将数据库中的用户信息导入这两个map中，可以用来根据用户的Id或token找到具体的User结构体：
-
-对于用户信息表users，主要的操作是当程序启动时，将数据库中保存的用户信息加载到内存中的分别存储用户token与用户User结构体的对应关系的`usersLoginInfo`，和存储用户Id与用户token的对应关系的`userIdToToken`两个map中，可以根据用户的Id或token找到具体的User结构体，不用从数据库中进行查找，还有注册时向其中插入一条用户记录，并在内存的两个map中进行记录，对数据库大部分是更新操作，所以不用添加索引。
-
 #### 2. 视频信息videos表
 
-视频信息表videos使用到的视频结构体`VideoDao`仿照程序使用的`global/common.go`文件中的视频结构体`Video`进行设计，放在`repository/video_dao.go`文件中，`Video`的`User`类型字段`Author`改成了`int64`类型的字段`AuthorId`，在数据库中只存储视频作者的用户Id，当要获取这个作者的具体用户信息时，通过`userIdToToken`首先将用户Id转成用户token，然后再用token从`usersLoginInfo`中找到具体的用户信息，同时新加了一个`PublishTime`字段用来表示投稿时间，放在`repository/video_dao.go`文件中，设置视频ID为自增主键：
+视频信息表videos使用到的视频结构体`VideoDao`仿照程序使用的`global/common.go`文件中的视频结构体`Video`进行设计，放在`repository/video_dao.go`文件中，`Video`的`User`类型字段`Author`改成了`int64`类型的字段`AuthorId`，在数据库中只存储视频作者的用户Id，当要获取这个对应作者用户的信息时，只需要通过这个表项与`users`表进行内连接，即可获取详细的用户信息，同时新加了一个`PublishTime`字段用来表示投稿时间，放在`repository/video_dao.go`文件中，设置视频ID为自增主键：
 
 ```go
 // 视频信息表videos
@@ -153,27 +150,15 @@ func (VideoDao) TableName() string {
 }
 ```
 
-**索引选择：**
-
-对于videos表，主要的操作是当调用Feed接口时，从数据库中根据`publish_time`字段查找小于`lastestTime`的视频，并按`publish_time`倒序排列，最多返回30个视频，以及调用返回作品列表PublishList接口时，根据`author_id`字段查找用户发布所有视频，还有发布视频时，向数据库中插入新的记录，因为拉取视频和查看个人页作品列表的频率应该远远高于发布视频的频率，一个人发布视频可能有上千个人看，在查询性能和更新性能之间应该更加偏向于查询性能，所以应该要在`publish_time`字段添加一个倒序索引，并在`author_id`字段添加一个索引，进行基准测试时，需要使用Demo数据库并导入Demo数据，每次都先删除整个数据库再建立数据库，以保证每次建立的表格按照要求建立索引，结果如下：
-
-![](./imgs/2.png)
-
-可以看到，向`publish_time`字段上添加倒序索引，在调用Feed接口时性能要比不添加索引或添加正序索引好一些，所以应该往`publish_time`字段上添加倒序索引。
-
-![](./imgs/3.png)
-
-可以看到，向`author_id`字段上添加索引，在调用返回作品列表的PublishList接口时性能要比不添加索引好一些，所以应该往`author_id`字段上添加索引。
-
 #### 3. 点赞视频信息favorites表
 
-点赞视频信息表favorites使用到的视频结构体`FavoriteDao`有两个字段，分别是给这个视频点赞的用户token和这个视频的Id，放在`repository/favorite_dao.go`文件中：
+点赞视频信息表favorites使用到的视频结构体`FavoriteDao`有两个字段，分别是给这个视频点赞的用户的Id和这个视频的Id，放在`repository/favorite_dao.go`文件中：
 
 ```go
 // 点赞视频信息表favorites
 type FavoriteDao struct {
-	Token   string `json:"token" gorm:"index"`    // 用户的token
-	VideoId int64  `json:"video_id" gorm:"index"` // 用户点赞的视频Id
+	UserId  int64 `json:"user_id" gorm:"index"`  // 用户的Id
+	VideoId int64 `json:"video_id" gorm:"index"` // 用户点赞的视频Id
 }
 
 func (FavoriteDao) TableName() string {
@@ -181,17 +166,9 @@ func (FavoriteDao) TableName() string {
 }
 ```
 
-**索引选择：**
-
-对于favorites表，主要的操作是当调用FavoriteAction接口进行点赞或取消点赞行为，或调用FavoriteList接口返回点赞列表时，需要根据`token`和`video_id`字段从数据库中查找对应token用户点赞过的所有视频id，点赞或取消点赞时从数据库中根据`token`和`video_id`字段删除相应记录，所以需要在查找和更新性能之间进行取舍，通过基准测试决定是否应该在`token`和`video_id`字段建立索引，结果如下：
-
-![](./imgs/4.png)
-
-可以看到，向`token`和`video_id`字段添加索引，总体性能要好一点，所以应该往`token`和`video_id`字段上都添加索引。
-
 #### 4. 评论信息comments表
 
-评论信息表comments使用到的评论结构体`CommentDao`仿照程序使用的`global/common.go`文件中的视频结构体`Comment`进行设计，`Comment`的`User`类型字段`User`改成了`int64`类型的字段`UserId`，在数据库中只存储评论者的Id，当要获取这个评论者的具体用户信息时，通过`userIdToToken`首先将用户Id转成用户token，然后再用token从`usersLoginInfo`中找到具体的用户信息，同时新加了`VideoId`字段表示视频，`PublishTime`字段用来表示评论时间，放在`repository/comment_dao.go`文件中，设置评论ID为自增主键：
+评论信息表comments使用到的评论结构体`CommentDao`仿照程序使用的`global/common.go`文件中的视频结构体`Comment`进行设计，`Comment`的`User`类型字段`User`改成了`int64`类型的字段`UserId`，在数据库中只存储评论者的Id，当要获取这个评论者的具体用户信息时，只需要通过这个表项与`users`表进行内连接，即可获取详细的用户信息，同时新加了`VideoId`字段表示视频，通过与`videos`表进行内连接即可获得详细视频信息，`PublishTime`字段用来表示评论时间，放在`repository/comment_dao.go`文件中，设置评论ID为自增主键：
 
 ```go
 // 评论信息表comments
@@ -209,14 +186,6 @@ func (CommentDao) TableName() string {
 }
 ```
 
-**索引选择：**
-
-对于comments表，主要的操作是当调用CommentAction接口进行评论或取消评论行为，需要向数据库中插入或删除相应的评论记录，或调用CommentList接口返回视频评论列表时，需要根据`video_id`查找视频所有的评论记录，并按`publish_time`字段倒序返回从数据库中查找对应token用户点赞过的所有视频id，所以应该在`video_id`字段建立索引，并在`publish_time`字段建立倒序索引基准测试如下：
-
-![](./imgs/5.png)
-
-可以看到，向`video_id`字段建立索引和向`publish_time`字段建立倒序索引，总体性能要好一点，所以应该往`video_id`字段建立索引和往`publish_time`字段建立倒序索引。
-
 #### 5. 关系信息relations表
 
 关注或取消关注过程中使用到的与数据库进行交互的用户信息结构体是`RelationDao`有两个字段，分别是给这个关注者的用户id和被关注者的用户id，放在`repository/relation_dao.go`文件中：
@@ -233,55 +202,45 @@ func (RelationDao) TableName() string {
 }
 ```
 
-**索引选择：**
-
-对于relations表，主要的操作是当调用RelationAction接口进行关注或取消关注行为，需要在数据库中建立或删除相应的记录，或调用FollowList接口和FollowerList返回关注列表和粉丝列表时，需要根据`user_id`和`to_user_id`字段从数据库中查找对应的关注记录，所以需要在查找和更新性能之间进行取舍，通过基准测试决定是否应该在`user_id`和`to_user_id`字段建立索引，结果如下：
-
-![](./imgs/6.png)
-
-![](./imgs/7.png)
-
-可以看到，向`user_id`和`to_user_id`字段上添加索引，总体性能要好一点，所以应该往`user_id`和`to_user_id`字段上都添加索引。
-
 ### 服务层功能实现思路
 
 #### 1. 登录、注册功能
 
-注册时，首先判断用户名或密码是否超过32个字符，超过则直接返回注册失败，接着判断用户是否存在，如果用户已经存在，直接返回注册失败，否则将注册用户的用户名填入`Name`属性，用户名拼接加密的密码组成`Token`属性，`FollowCount`、`FollowerCount`为0，`IsFollow`为`false`构成的UserDao对象直接插入数据库中的`users`表中，并在`usersLoginInfo`和`userIdToToken`记录新注册用户的对应关系，在`usernameMap`中记录注册用户名。
+注册时，首先判断用户名或密码是否为空和超过32个字符，为空或超过则直接返回注册失败，接着判断用户是否存在，如果用户已经存在，直接返回注册失败，否则对密码进行加密，根据一定规则生成`token`，在数据库`users`表中创建相应的用户记录
 
-登录时，首先根据用户名拼接加密的密码组成token，然后在`usersLoginInfo`中搜索是否存在这个token，存在则可以从`usersLoginInfo`中根据token取出用户信息并返回，找不到token则返回用户不存在。
+登录时，首先判断用户名或密码是否为空，为空则直接返回登录失败，然后查询用户名，不存在则返回登录失败，再进行密码校验，将经过加密后的密码与数据库中存储着的密码进行对比，校验成功后，更新token的上次使用时间为当前时间，登录成功。
 
 #### 2. 视频 Feed 流
 
-当拉取视频时，首先获取限制返回视频的投稿时间戳`latest_time`，如果没有设置，则默认为当前时间，然后找到投稿时间不晚于lastestTime的投稿视频，按投稿时间倒序排列，最多30个，如果没有直接返回nil，接着获取用户点赞的视频列表，并存储在map中，根据投稿视频是否在这个点赞的视频列表中，设置获取的投稿视频的是否点赞`IsFavorite`属性，并记录本次返回的视频中，发布最早的时间`nextTime`，作为下次请求时的`latest_time`
+当拉取视频时，首先获取限制返回视频的投稿时间戳`latest_time`，如果没有设置，则默认为当前时间，然后找到投稿时间不晚于lastestTime的投稿视频，按投稿时间倒序排列，最多`MaxFeedVideosNumOnce`个，如果没有直接返回nil，同时获取用户点赞的视频列表，并存储在map中，根据投稿视频是否在这个点赞的视频列表中，设置获取的投稿视频的是否点赞`IsFavorite`属性，并记录本次返回的视频中，发布最早的时间`nextTime`，作为下次请求时的`latest_time`，最后返回视频列表
 
 #### 3. 视频投稿
 
-当投稿时，首先获取token，判断是否处于登录状态，不是则直接返回，取消发布视频，否则获取发布的视频文件数据，将视频文件经过文件路径和命名处理后存入本地的`public`文件夹目录下，同时将相应的视频信息组成一个`VideoDao`插入数据库的`videos`表中，其中播放路径`PlayUrl`由放在`common.go`文件中的服务器url、`static/`、文件最终名字`finalName`组成，发布时间通过`time.Now().Unix()`方法获取，即为当前时间。
+当投稿时，首先获取token，判断是否处于登录状态以及登录凭证是否有效，不是则直接返回，取消发布视频，否则获取发布的视频文件数据，将视频文件经过文件路径和命名处理后存入本地的`public`文件夹目录下，可以添加用户序号和时间戳避免同名文件覆盖，然后在数据库中创建相应的视频记录。
 
-当获取发布作品列表时，首先从数据库中的`videos`表根据用户id获取这个用户发布的视频列表，因为这个用户有可能对自己的视频点赞，所以也要获取这个用户点赞的视频列表，设置视频列表中的视频的`IsFavorite`是否点赞属性后返回这个用户发布视频列表。
+当获取发布作品列表时，首先从数据库中的`videos`表中获取登录用户的点赞列表和查看的用户的发布视频列表，根据登录用户是否点赞设置视频列表中每个视频的`IsFavorite`属性，最后返回查看的那一个用户发布的视频列表。
 
 #### 4. 个人信息
 
-在登录时会获取个人信息，首先在`usersLoginInfo`中查找token，如果找不到返回用户不存在，找到则从`usersLoginInfo`中根据token取出用户信息并返回。
+在登录时会获取个人信息，首先会根据token获取用户，如果token对应的用户不存在，返回用户不存在，如果用户存在但是token已经过期，返回token过期，需要重新登录，如果token没过期那就更新token的上次使用时间，最后返回具体用户信息。
 
 #### 5. 点赞功能
 
-当点赞或取消点赞时，首先获取token，判断是否处于登录状态，不是则直接返回，否则先根据token获取这个用户点赞的视频列表，判断用户是否对当前视频点过赞了，如果是点赞行为且之前没有给这个视频点过赞，那么将数据库中`videos`表的这个视频的总点赞数加一，并在`favorites`点赞视频表中创建相应点赞记录，之前点过赞则不作反应，直接返回；如果是取消点赞行为且之前给这个视频点过赞了，那个更新数据库中的视频总点赞数，删除点赞记录，之前没点过赞则不作反应，直接返回。
+当点赞或取消点赞时，首先获取token，判断是否处于登录状态以及登录凭证是否有效，不是则直接返回，否则先根据token获取用户的Id，然后根据Id获取这个用户点赞的视频列表，判断用户是否对当前视频点过赞了，如果是点赞行为且之前没有给这个视频点过赞，那么将数据库中`videos`表的这个视频的总点赞数加一，并在`favorites`点赞视频表中创建相应点赞记录，之前点过赞则不作反应，直接返回；如果是取消点赞行为且之前给这个视频点过赞了，那个更新数据库中的视频总点赞数，删除点赞记录，之前没点过赞则不作反应，直接返回。
 
-当获取点赞列表时，首先根据用户Id从`userIdToToken`中获取用户token，然后根据用户token从数据库的`favorites`表中获取这个用户点赞的所有视频，最后返回。
+当获取点赞列表时，可以根据用户Id，用`favorite_videos`表的`video_id`字段和`videos`表的`id`字段内连接，以及`videos`表的`author_id`字段和`users`表的`id`字段进行内连接查询出特定Id对应用户所点赞的视频和视频的作者，最后返回。
 
 #### 6. 评论功能
 
-当进行评论或取消评论时，首先获取token，判断是否处于登录状态，不是则直接返回，如果是评论行为，首先获取当前日期作为创建日期，获取当前时间作为发布时间，然后向评论信息表中插入相应的评论记录，并更新视频信息表中相应视频的评论数加一；如果是取消评论行为，则从评论信息表中删除相应的记录，并更新视频信息表中相应视频的评论数减一。
+当进行评论或取消评论时，首先获取token，判断是否处于登录状态以及登录凭证是否有效，不是则直接返回，如果是评论行为，首先获取当前日期作为创建日期，获取当前时间作为发布时间，然后向评论信息表中插入相应的评论记录，并更新视频信息表中相应视频的评论数加一；如果是取消评论行为，则从评论信息表中删除相应的记录，并更新视频信息表中相应视频的评论数减一。
 
-当获取视频的所有评论时，从数据库的`comments`表中根据视频id获取按发布时间倒序的所有评论，然后从从记录账号信息的`usersLoginInfo`和`userIdToToken`根据用户Id获取具体的评论用户信息，设置获取的评论列表中评论作者字段，返回相应的评论列表。
+当获取视频的所有评论时，可以根据视频的Id，用`comments`表的`user_id`字段和`users`表的`id`字段进行内连接查询出特定视频Id的评论和对应的评论用户，返回相应的评论列表。
 
 #### 7. 关注功能
 
-当进行关注或取消关注时，首先获取token，判断是否处于登录状态，不是则直接返回，否则先根据token获取这个用户的Id，如果是用户自己关注或取关自己，则不能操作，直接返回，否则继续，如果是关注行为，那么在数据库的`relations`表中创建相应的记录，在`users`表中更新关注用户和被关注用户的关注数和被关注数；如果是取消关注行为，那么在数据库的`relations`表中删除相应的记录，在`users`表中更新关注用户和被关注用户的关注数和被关注数，对数据库操作完后，同时也要更新内存中的存储账号信息`usersLoginInfo`的map中相应用户的关注数、被关注数、是否被关注等信息。
+当进行关注或取消关注时，首先获取token，判断是否处于登录状态以及登录凭证是否有效，不是则直接返回，否则先根据token获取这个用户的Id，如果是用户自己关注或取关自己，则不能操作，直接返回，否则继续，如果是关注行为，那么在数据库的`relations`表中创建相应的记录，在`users`表中更新关注用户和被关注用户的关注数和被关注数；如果是取消关注行为，那么在数据库的`relations`表中删除相应的记录，在`users`表中更新关注用户和被关注用户的关注数和被关注数。
 
-当获取关注列表或粉丝列表时，从数据库的`relations`表中根据用户Id获取所有这个用户关注或关注这个用户的用户Id，然后从从记录账号信息的`usersLoginInfo`和`userIdToToken`根据用户Id获取具体的关注或粉丝用户信息，如果是获取粉丝列表，还需要从数据库中根据用户id获取这个用户关注的所有用户，判断这个用户是否关注了粉丝，设置粉丝的`IsFollow`是否关注属性，然后返回获取的用户列表。
+当获取关注列表或粉丝列表时，首先从数据库中的`relations`表中获取登录用户的关注列表和查看的用户的关注列表或粉丝列表，根据登录用户是否关注设置查看用户返回的关注列表或粉丝列表中，每个用户的`IsFollow`属性，最后返回查看的那一个用户发布的关注列表或粉丝列表。
 
 ## 功能展示
 
@@ -385,14 +344,6 @@ func (RelationDao) TableName() string {
 
 ## 安全问题考虑
 
-### 越权问题
-
-一开始选择的登录凭证token的构造方式是登录用户的username和password直接拼接而成，这种方式存在一定的安全风险，比如当一个用户的用户名为`user`，密码为`123456789`时，它的登录凭证token为`user123456789`，如果另一个用户名为`user123`的用户，使用密码`.456789`进行登录时，就可以构造出同样的`user123456789`登录凭证token，从而对用户`user`进行超过权限的操作。
-
-为了解决出现的越权问题，这里选择了username和经过sha256算法加密后的password进行拼接构造登录凭证token的方案，这样一来，当用户名不同时，很难通过拼接密码获取相同的登录凭证，而每个token的前缀都是username，即使两个合法用户的用户名加密码可能相同，它们的登录凭证也不同，一定程度上保证了每个token的唯一性，同时当数据库发生泄露时，盗取数据的人也很难通过加密后的password推出原来的密码，一定程度上保护了用户的安全。
-
 ### 数据库注入问题
 
 为了防止数据库注入，这里使用了gorm框架的参数化查询方法进行避免，而不是直接拼接sql语句，gorm框架的参数化查询会对sql语句进行预编译，而不是直接进行拼接，将用户输入的值用`?`占位符代替，之后运行时再传入用户输入的数据，除了防止sql注入以外，还可以对预编译的sql语句进行缓存，运行时就省去了解析优化sql语句的过程，可以加速sql的查询，提高查询性能。
-
-其次，注册时会根据用户名和经过sha256算法加密后的密码拼接形成一个登录凭证token，这个token和具体用户的对应关系被保存在内存的一个map中，每次启动程序时也会先将所有的账号信息从数据库中加载到内存的这个map中，当登录时，会首先从内存的这个map中查找是否存在对应的token，而不是直接通过数据库进行查询，这样一定程度上也避免了数据库注入的问题。

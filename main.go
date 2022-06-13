@@ -4,7 +4,6 @@ import (
 	"os"
 	"simple_tiktok/global"
 	"simple_tiktok/repository"
-	"simple_tiktok/service"
 
 	"github.com/gin-gonic/gin"
 )
@@ -24,9 +23,6 @@ func main() {
 		// 向数据库导入Demo数据
 		repository.InitDemoData()
 	}
-
-	// 初始化账号信息
-	service.InitUserInfo()
 
 	r.Run() // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
 }

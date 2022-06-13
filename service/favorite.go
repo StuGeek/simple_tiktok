@@ -8,7 +8,21 @@ import (
 
 // 根据用户token和视频Id，进行点赞，返回可能的错误信息
 func LikeAction(token string, videoId int64) string {
-	var errMsg string = ""
+	// 点赞需要用户已经登录，且登录凭证有效
+	user, errMsg := GetUserByToken(token)
+	if errMsg != "" {
+		return errMsg
+	}
+
+	// 获取用户是否已经给这个视频点过赞
+	isFavorite, err := repository.QueryIsFavorite(user.Id, videoId)
+	if err != nil {
+		return "Internal Server Error! Query favorite failed"
+	}
+	// 如果之前已经点过赞了，直接返回
+	if isFavorite {
+		return "The video has been liked"
+	}
 
 	var wg sync.WaitGroup
 	wg.Add(2)
@@ -23,8 +37,8 @@ func LikeAction(token string, videoId int64) string {
 	}()
 	go func() {
 		defer wg.Done()
-		// 在数据库的favorite_videos点赞视频表中创建相应点赞记录，如果插入失败，记录错误信息
-		err := repository.CreateFavorite(token, videoId)
+		// 在数据库的favorites点赞视频表中创建相应点赞记录，如果插入失败，记录错误信息
+		err := repository.CreateFavorite(user.Id, videoId)
 		if err != nil {
 			errMsg = "Internal Server Error! Create favorite failed"
 		}
@@ -42,7 +56,21 @@ func LikeAction(token string, videoId int64) string {
 
 // 根据用户token和视频Id，取消点赞，返回可能的错误信息
 func CancelLikeAction(token string, videoId int64) string {
-	var errMsg string = ""
+	// 取消点赞需要用户已经登录，且登录凭证有效
+	user, errMsg := GetUserByToken(token)
+	if errMsg != "" {
+		return errMsg
+	}
+
+	// 获取用户是否已经给这个视频点过赞
+	isFavorite, err := repository.QueryIsFavorite(user.Id, videoId)
+	if err != nil {
+		return "Internal Server Error! Query favorite failed"
+	}
+	// 如果之前没有点过赞，直接返回
+	if !isFavorite {
+		return "Didn't like the video before"
+	}
 
 	var wg sync.WaitGroup
 	wg.Add(2)
@@ -58,7 +86,7 @@ func CancelLikeAction(token string, videoId int64) string {
 	go func() {
 		defer wg.Done()
 		// 删除点赞记录，如果删除失败，记录错误信息
-		err := repository.DeleteFavorite(token, videoId)
+		err := repository.DeleteFavorite(user.Id, videoId)
 		if err != nil {
 			errMsg = "Internal Server Error! Delete favorite failed"
 		}
@@ -74,19 +102,22 @@ func CancelLikeAction(token string, videoId int64) string {
 	return ""
 }
 
-// 根据用户Id获取用户的喜欢视频列表，返回视频列表和可能的错误
-func GetFavoriteVideosById(userId int64) ([]global.Video, error) {
-	// 根据token获取这个用户点赞的视频列表
-	userToken, _ := repository.GetUserTokenById(userId)
-	favoriteVideos, err := repository.QueryFavoriteVideosByToken(userToken)
+// 根据用户Id获取用户的点赞视频列表，返回视频列表和可能的错误信息
+func GetFavoriteListById(userId int64) ([]global.Video, string) {
+	// 获取点赞的视频列表
+	favoriteList, err := repository.QueryAllFavoriteVideoByUserId(userId)
 	if err != nil {
-		return []global.Video{}, err
+		return nil, "Internal Server Error! Query favorite failed"
 	}
 
 	// 将所有点赞的视频加入videoList中，设置IsFavorite属性为true，并最后返回
 	var videoList []global.Video
-	for _, favoriteVideo := range favoriteVideos {
-		author, _ := repository.GetUserById(favoriteVideo.AuthorId)
+	for _, favoriteVideo := range favoriteList {
+		author := global.User{
+			Id:   favoriteVideo.AuthorId,
+			Name: favoriteVideo.Name,
+		}
+
 		videoList = append(videoList, global.Video{
 			Id:            favoriteVideo.Id,
 			Author:        author,
@@ -99,33 +130,5 @@ func GetFavoriteVideosById(userId int64) ([]global.Video, error) {
 		})
 	}
 
-	return videoList, nil
-}
-
-// 根据用户的token获取用户点赞的视频Id和Video结构体对应的map
-func GetFavoriteVideosByToken(token string) (map[int64]global.Video, error) {
-	// 根据token查询对应用户所点赞的视频
-	favoriteVideos, err := repository.QueryFavoriteVideosByToken(token)
-	if err != nil {
-		return map[int64]global.Video{}, err
-	}
-
-	var favoriteVideoInfo = make(map[int64]global.Video)
-
-	// 存储用户点赞视频的视频Id和视频，并设置IsFavorite为true
-	for _, favoriteVideo := range favoriteVideos {
-		author, _ := repository.GetUserById(favoriteVideo.AuthorId)
-		favoriteVideoInfo[favoriteVideo.Id] = global.Video{
-			Id:            favoriteVideo.Id,
-			Author:        author,
-			PlayUrl:       favoriteVideo.PlayUrl,
-			CoverUrl:      favoriteVideo.CoverUrl,
-			FavoriteCount: favoriteVideo.FavoriteCount,
-			CommentCount:  favoriteVideo.CommentCount,
-			IsFavorite:    true,
-			Title:         favoriteVideo.Title,
-		}
-	}
-
-	return favoriteVideoInfo, nil
+	return videoList, ""
 }

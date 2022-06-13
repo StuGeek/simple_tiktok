@@ -3,103 +3,114 @@ package repository
 import (
 	"errors"
 	"fmt"
-	"simple_tiktok/global"
+	"time"
 
 	"gorm.io/gorm"
 )
 
-// usersLoginInfo use map to store user info, and key is username+password for demo
-// user data will be cleared every time the server starts
-var usersLoginInfo = map[string]global.User{} // 存储用户token与用户User结构体的对应关系
-var userIdToToken = map[int64]string{}        // 存储用户Id与用户token的对应关系
-var usernameMap = map[string]struct{}{}       // 存储用户名是否存在
-
 // 用户信息表users
 type UserDao struct {
-	Id            int64  `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
-	Name          string `json:"name"`
-	FollowCount   int64  `json:"follow_count" gorm:"default:0"`
-	FollowerCount int64  `json:"follower_count" gorm:"default:0"`
-	IsFollow      bool   `json:"is_follow" gorm:"default:false"`
-	Token         string `json:"token"`
+	Id                int64  `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
+	Name              string `json:"name"`
+	FollowCount       int64  `json:"follow_count" gorm:"default:0"`
+	FollowerCount     int64  `json:"follower_count" gorm:"default:0"`
+	IsFollow          bool   `json:"is_follow" gorm:"default:false"`
+	Password          string `json:"password"`
+	Token             string `json:"token"`
+	TokenLastUsedTime int64  `json:"token_last_used_time"`
 }
 
 func (UserDao) TableName() string {
 	return "users"
 }
 
-// 查询所有用户信息
-func QueryAllUser() ([]UserDao, error) {
-	var users []UserDao
-	if err := GlobalDB.Find(&users).Error; err != nil {
-		// 如果没找到用户就返回空用户列表和nil
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			fmt.Println("users record not found!", err)
-			return []UserDao{}, nil
-		} else {
-			fmt.Println("QueryAllUser() failed!", err)
-			return []UserDao{}, err
-		}
-	}
-
-	return users, nil
-}
-
-// 根据用户Id查询用户的关注数
-func QueryFollowCountByUserId(userId int64) (int64, error) {
-	var user UserDao
-	err := GlobalDB.Where("id = ?", userId).First(&user).Error
+// 通过用户Id获取用户的UserDao结构体
+func QueryUserById(userId int64) (UserDao, error) {
+	var userDao UserDao
+	err := globalDB.Where("id = ?", userId).First(&userDao).Error
 	if err != nil {
-		// 如果没找到用户就返回0和nil
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			fmt.Println("user record not found!", err)
-			return 0, nil
+			return UserDao{}, nil
 		} else {
-			fmt.Println("QueryFollowCountByUserId(int64) failed!", err)
-			return 0, err
+			fmt.Println("QueryUserById(int64) failed!", err)
+			return UserDao{}, err
 		}
 	}
 
-	return user.FollowCount, nil
+	return userDao, nil
 }
 
-// 根据用户名和token创建用户，并返回创建的用户Id
-func CreateUser(username string, token string) (int64, string) {
-	newUserDao := UserDao{Name: username, Token: token}
-	if err := GlobalDB.Create(&newUserDao).Error; err != nil {
+// 通过用户名获取用户的UserDao结构体
+func QueryUserByName(name string) (UserDao, bool, error) {
+	var userDao UserDao
+	err := globalDB.Where("name = ?", name).First(&userDao).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			fmt.Println("user record not found!", err)
+			return UserDao{}, false, nil
+		} else {
+			fmt.Println("QueryUserByName(string) failed!", err)
+			return UserDao{}, false, err
+		}
+	}
+
+	return userDao, true, nil
+}
+
+// 通过用户token获取用户的UserDao结构体
+func QueryUserByToken(token string) (UserDao, bool, error) {
+	var userDao UserDao
+	err := globalDB.Where("token = ?", token).First(&userDao).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			// fmt.Println("user record not found!", err)
+			return UserDao{}, false, nil
+		} else {
+			fmt.Println("QueryUserByToken(string) failed!", err)
+			return UserDao{}, false, err
+		}
+	}
+
+	return userDao, true, nil
+}
+
+// 根据用户名、密码和token创建用户，并返回创建的用户Id
+func CreateUser(username string, password string, token string) (int64, string) {
+	newUserDao := UserDao{
+		Name:              username,
+		Password:          password,
+		Token:             token,
+		TokenLastUsedTime: time.Now().Unix(),
+	}
+	if err := globalDB.Create(&newUserDao).Error; err != nil {
 		fmt.Println("Create user failed!", err)
 		return 0, "Create user failed!"
 	}
 
 	newUserId := newUserDao.Id
-	// 记录用户token与用户User结构体的对应关系，插入数据库后，表中id为主键，可直接获取作为用户id
-	SetUsersLoginInfo(token, &global.User{Id: newUserId, Name: username})
-	// 记录用户Id与用户token的对应关系
-	SetUserIdToToken(newUserId, token)
-	// 记录注册用户名
-	SetUsernameMap(username)
-
 	return newUserId, ""
+}
+
+// 更新token的上次使用时间
+func UpdataTokenLastUsedTime(token string) error {
+	err := globalDB.Where("token = ?", token).First(&UserDao{}).Update("token_last_used_time", time.Now().Unix()).Error
+	if err != nil {
+		fmt.Println("UpdataTokenLastUsedTime(string) failed", err)
+		return err
+	}
+
+	return nil
 }
 
 // 根据用户Id给这个用户的关注数加一
 func AddOneFollowCountById(userId int64) error {
 	var user UserDao
-	err := GlobalDB.Where("id = ?", userId).First(&user).Update("follow_count", user.FollowCount+1).Error
+	err := globalDB.Where("id = ?", userId).First(&user).Update("follow_count", user.FollowCount+1).Error
 	if err != nil {
-		fmt.Println("AddOneFollowCountById failed", err)
+		fmt.Println("AddOneFollowCountById(int64) failed", err)
 		return err
 	}
-
-	userToken, _ := GetUserTokenById(userId)
-	// 更新存储账号信息usersLoginInfo的map中相应用户的关注数、被关注数、是否被关注等信息
-	SetUsersLoginInfo(userToken, &global.User{
-		Id:            user.Id,
-		Name:          user.Name,
-		FollowCount:   user.FollowCount,
-		FollowerCount: user.FollowerCount,
-		IsFollow:      user.IsFollow,
-	})
 
 	return nil
 }
@@ -107,21 +118,11 @@ func AddOneFollowCountById(userId int64) error {
 // 根据用户Id给这个用户的粉丝数加一
 func AddOneFollowerCountById(userId int64) error {
 	var user UserDao
-	err := GlobalDB.Where("id = ?", userId).First(&user).Update("follower_count", user.FollowerCount+1).Error
+	err := globalDB.Where("id = ?", userId).First(&user).Update("follower_count", user.FollowerCount+1).Error
 	if err != nil {
-		fmt.Println("AddOneFollowerCountById failed", err)
+		fmt.Println("AddOneFollowerCountById(int64) failed", err)
 		return err
 	}
-
-	userToken, _ := GetUserTokenById(userId)
-	// 更新存储账号信息usersLoginInfo的map中相应用户的关注数、被关注数、是否被关注等信息
-	SetUsersLoginInfo(userToken, &global.User{
-		Id:            user.Id,
-		Name:          user.Name,
-		FollowCount:   user.FollowCount,
-		FollowerCount: user.FollowerCount,
-		IsFollow:      true,
-	})
 
 	return nil
 }
@@ -129,21 +130,11 @@ func AddOneFollowerCountById(userId int64) error {
 // 根据用户Id给这个用户的关注数减一
 func SubOneFollowCountById(userId int64) error {
 	var user UserDao
-	err := GlobalDB.Where("id = ?", userId).First(&user).Update("follow_count", user.FollowCount-1).Error
+	err := globalDB.Where("id = ?", userId).First(&user).Update("follow_count", user.FollowCount-1).Error
 	if err != nil {
-		fmt.Println("SubOneFollowCountById failed", err)
+		fmt.Println("SubOneFollowCountById(int64) failed", err)
 		return err
 	}
-
-	userToken, _ := GetUserTokenById(userId)
-	// 更新存储账号信息usersLoginInfo的map中相应用户的关注数、被关注数、是否被关注等信息
-	SetUsersLoginInfo(userToken, &global.User{
-		Id:            user.Id,
-		Name:          user.Name,
-		FollowCount:   user.FollowCount,
-		FollowerCount: user.FollowerCount,
-		IsFollow:      user.IsFollow,
-	})
 
 	return nil
 }
@@ -151,80 +142,11 @@ func SubOneFollowCountById(userId int64) error {
 // 根据用户Id给这个用户的粉丝数减一
 func SubOneFollowerCountById(userId int64) error {
 	var user UserDao
-	err := GlobalDB.Where("id = ?", userId).First(&user).Update("follower_count", user.FollowerCount-1).Error
+	err := globalDB.Where("id = ?", userId).First(&user).Update("follower_count", user.FollowerCount-1).Error
 	if err != nil {
-		fmt.Println("SubOneFollowerCountById failed", err)
+		fmt.Println("SubOneFollowerCountById(int64) failed", err)
 		return err
 	}
 
-	userToken, _ := GetUserTokenById(userId)
-	// 更新存储账号信息usersLoginInfo的map中相应用户的关注数、被关注数、是否被关注等信息
-	SetUsersLoginInfo(userToken, &global.User{
-		Id:            user.Id,
-		Name:          user.Name,
-		FollowCount:   user.FollowCount,
-		FollowerCount: user.FollowerCount,
-		IsFollow:      false,
-	})
-
 	return nil
-}
-
-// 存储用户token与用户User结构体的对应关系
-func SetUsersLoginInfo(token string, user *global.User) {
-	usersLoginInfo[token] = *user
-}
-
-// 存储用户Id与用户token的对应关系
-func SetUserIdToToken(userId int64, token string) {
-	userIdToToken[userId] = token
-}
-
-// 设置用户名存在
-func SetUsernameMap(username string) {
-	usernameMap[username] = struct{}{}
-}
-
-// 通过用户token获取用户的User结构体
-func GetUserByToken(token string) (global.User, bool) {
-	user, exist := usersLoginInfo[token]
-	if exist {
-		return user, true
-	}
-
-	return global.User{}, false
-}
-
-// 通过用户token获取用户的Id
-func GetUserIdByToken(token string) (int64, bool) {
-	if _, exist := usersLoginInfo[token]; exist {
-		return usersLoginInfo[token].Id, true
-	}
-
-	return 0, false
-}
-
-// 通过用户Id获取用户的User结构体
-func GetUserById(userId int64) (global.User, bool) {
-	if _, exist := userIdToToken[userId]; exist {
-		return usersLoginInfo[userIdToToken[userId]], true
-	}
-
-	return global.User{}, false
-}
-
-// 通过用户tokrn获取用户的Id
-func GetUserTokenById(userId int64) (string, bool) {
-	token, exist := userIdToToken[userId]
-	if exist {
-		return token, true
-	}
-
-	return "", false
-}
-
-// 判断用户名是否已存在
-func IsUsernameExist(username string) bool {
-	_, exist := usernameMap[username]
-	return exist
 }

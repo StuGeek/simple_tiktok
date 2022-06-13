@@ -7,18 +7,24 @@ import (
 	"time"
 )
 
-// 根据发布评论的用户Id，视频Id，评论内容发布评论，返回发布的评论Id，创建日期，和可能的错误信息
-func PublishComment(userId int64, videoId int64, content string) (int64, string, string) {
-	var commentCount int64
-	var err error = nil
-	commentCount, err = repository.QueryCommentCountByVideoId(videoId)
-	if err != nil {
-		return 0, "", "Internal Server Error! Query comment count failed"
+// 根据发布评论的评论结构体和可能的错误信息
+func PublishComment(token string, videoId int64, content string) (*global.Comment, string) {
+	// 评论需要用户已经登录，且登录凭证有效
+	user, errMsg := GetUserByToken(token)
+	if errMsg != "" {
+		return nil, errMsg
 	}
 
-	// 评论数不能超过单个视频的评论最大值
-	if global.MaxCommentCount < 0 && commentCount >= global.MaxCommentCount {
-		return 0, "", "The number of comments of the video has reached the maximum"
+	if global.MaxCommentCount >= 0 {
+		commentCount, err := repository.QueryCommentCountByVideoId(videoId)
+		if err != nil {
+			return nil, "Internal Server Error! Query comment count failed"
+		}
+
+		// 评论数不能超过单个视频的评论最大值
+		if commentCount >= global.MaxCommentCount {
+			return nil, "The number of comments of the video has reached the maximum"
+		}
 	}
 
 	// 获取当前日期，当前时间
@@ -27,7 +33,7 @@ func PublishComment(userId int64, videoId int64, content string) (int64, string,
 	publishTime := now.Unix()
 
 	var newCommentId int64
-	var errMsg string = ""
+	var err error
 
 	var wg sync.WaitGroup
 	wg.Add(2)
@@ -35,7 +41,7 @@ func PublishComment(userId int64, videoId int64, content string) (int64, string,
 	go func() {
 		defer wg.Done()
 		// 向评论信息表中插入相应的评论记录，如果插入失败，记录错误信息
-		newCommentId, err = repository.CreateComment(userId, videoId, content, createDate, publishTime)
+		newCommentId, err = repository.CreateComment(user.Id, videoId, content, createDate, publishTime)
 		if err != nil {
 			errMsg = "Internal Server Error! Create comment failed"
 		}
@@ -53,16 +59,38 @@ func PublishComment(userId int64, videoId int64, content string) (int64, string,
 
 	// 如果有错误信息，说明出错，返回错误信息
 	if errMsg != "" {
-		return 0, "", errMsg
+		return nil, errMsg
 	}
 
-	// 没有错误信息则返回新发布的评论Id和发布日期
-	return newCommentId, createDate, ""
+	newComment := global.Comment{
+		Id:         newCommentId,
+		User:       user,
+		Content:    content,
+		CreateDate: createDate,
+	}
+	// 没有错误信息则返回新发布的评论结构体
+	return &newComment, ""
 }
 
 // 根据评论的用户Id，视频Id删除评论，返回可能的错误信息
-func CancelComment(commentId int64, videoId int64) string {
-	var errMsg string = ""
+func CancelComment(token string, commentId int64, videoId int64) string {
+	// 取消评论需要用户已经登录，且登录凭证有效
+	user, errMsg := GetUserByToken(token)
+	if errMsg != "" {
+		return errMsg
+	}
+
+	// 用户不能删除其他用户的评论
+	commentUserId, err := repository.QueryUserIdByCommentId(commentId)
+	if err != nil {
+		return "Internal Server Error! Query user failed"
+	}
+	if commentUserId == 0 {
+		return "User doesn't exist"
+	}
+	if user.Id != commentUserId {
+		return "Can't delete other user's comment"
+	}
 
 	var wg sync.WaitGroup
 	wg.Add(2)
@@ -94,25 +122,28 @@ func CancelComment(commentId int64, videoId int64) string {
 	return ""
 }
 
-// 根据视频Id获取视频的评论列表，返回评论列表和可能的错误
-func GetCommentList(videoId int64) ([]global.Comment, error) {
-	// 从评论信息表中根据视频id获取按发布时间倒序的所有评论
-	comments, err := repository.QueryCommentByVideoId(videoId)
+// 根据视频Id获取视频的评论列表，返回评论列表和可能的错误信息
+func GetCommentList(videoId int64) ([]global.Comment, string) {
+	// 从评论信息表中根据视频id获取按发布时间倒序的所有评论和对应作者
+	comments, err := repository.QueryAllCommentByVideoId(videoId)
 	if err != nil {
-		return []global.Comment{}, err
+		return nil, "Internal Server Error! Query comment failed"
 	}
 
-	// 从记录账号信息的map中获取发布评论的User信息，返回相应的评论列表
+	// 返回相应的评论列表
 	var commentList []global.Comment
 	for _, commentDao := range comments {
-		user, _ := repository.GetUserById(commentDao.UserId)
+		user := global.User{
+			Id:   commentDao.UserId,
+			Name: commentDao.UserName,
+		}
 		commentList = append(commentList, global.Comment{
-			Id:         commentDao.Id,
+			Id:         commentDao.CommentId,
 			User:       user,
 			Content:    commentDao.Content,
 			CreateDate: commentDao.CreateDate,
 		})
 	}
 
-	return commentList, nil
+	return commentList, ""
 }
