@@ -93,7 +93,7 @@ func GetPublishList(token string, authorId int64) ([]global.Video, string) {
 	}
 
 	// 发布视频列表的作者为同一个
-	author := UserDaoToUser(&authorDao)
+	author := userDaoToUser(&authorDao)
 
 	// 将从数据库中取出的视频列表加入到videoList中，并根据登录用户是否点赞设置IsFavorite属性最后返回
 	var videoList []global.Video

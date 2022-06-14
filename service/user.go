@@ -36,7 +36,7 @@ func RegisterUser(username string, password string) (int64, string, string) {
 	}
 
 	// 根据用户名和密码获取token
-	token := GenerateToken(username, password)
+	token := generateToken(username, password)
 	// 在数据库中创建用户的记录
 	newUserId, errMsg := repository.CreateUser(username, MD5(password), token)
 	return newUserId, token, errMsg
@@ -66,7 +66,7 @@ func LoginUser(username string, password string) (int64, string, string) {
 	}
 
 	// 根据用户名和密码获取token
-	token := GenerateToken(username, password)
+	token := generateToken(username, password)
 	// 更新token的上次使用时间为当前时间
 	repository.UpdataTokenLastUsedTime(token)
 	return user.Id, token, ""
@@ -92,16 +92,16 @@ func GetUserByToken(token string) (global.User, string) {
 		}
 	}
 
-	return UserDaoToUser(&user), ""
+	return userDaoToUser(&user), ""
 }
 
 // 根据用户名和密码生成登录凭证token
-func GenerateToken(username string, password string) string {
+func generateToken(username string, password string) string {
 	return MD5(username) + MD5(password)
 }
 
 // 将UserDao结构体转换为User结构体
-func UserDaoToUser(userDao *repository.UserDao) global.User {
+func userDaoToUser(userDao *repository.UserDao) global.User {
 	return global.User{
 		Id:            userDao.Id,
 		Name:          userDao.Name,
