@@ -52,7 +52,11 @@ func QueryUserIdByCommentId(commentId int64) (int64, error) {
 func QueryAllCommentByVideoId(videoId int64) ([]CommentJoinUser, error) {
 	// 用comments表和users表查询出特定视频Id的评论和对应的评论用户
 	var commentJoinUser []CommentJoinUser
+	usersMutex.Lock()
+	commentsMutex.Lock()
 	err := globalDB.Model(&CommentDao{}).Where("video_id = ?", videoId).Select("comments.id as comment_id, comments.user_id, comments.content, comments.create_date, users.name as user_name").Joins("inner join users on users.id = comments.user_id").Order("publish_time desc").Scan(&commentJoinUser).Error
+	commentsMutex.Unlock()
+	usersMutex.Unlock()
 	if err != nil {
 		// 如果没找到评论就返回空评论列表和nil
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -77,7 +81,9 @@ func CreateComment(userId int64, videoId int64, content string, createDate strin
 		PublishTime: publishTime,
 	}
 
+	commentsMutex.Lock()
 	err := globalDB.Create(&newCommentDao).Error
+	commentsMutex.Unlock()
 	if err != nil {
 		fmt.Println("Create comment failed!", err)
 		return 0, err
@@ -90,7 +96,9 @@ func CreateComment(userId int64, videoId int64, content string, createDate strin
 
 // 根据评论Id从comments表中删除一条评论，返回可能的错误
 func DeleteComment(commentId int64) error {
+	commentsMutex.Lock()
 	err := globalDB.Where("id = ?", commentId).Delete(&CommentDao{}).Error
+	commentsMutex.Unlock()
 	if err != nil {
 		fmt.Println("Delete comment failed!", err)
 		return err

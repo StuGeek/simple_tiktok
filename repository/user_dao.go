@@ -27,7 +27,9 @@ func (UserDao) TableName() string {
 // 通过用户Id获取用户的UserDao结构体
 func QueryUserById(userId int64) (UserDao, error) {
 	var userDao UserDao
+	usersMutex.Lock()
 	err := globalDB.Where("id = ?", userId).First(&userDao).Error
+	usersMutex.Unlock()
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			fmt.Println("user record not found!", err)
@@ -44,7 +46,9 @@ func QueryUserById(userId int64) (UserDao, error) {
 // 通过用户名获取用户的UserDao结构体
 func QueryUserByName(name string) (UserDao, bool, error) {
 	var userDao UserDao
+	usersMutex.Lock()
 	err := globalDB.Where("name = ?", name).First(&userDao).Error
+	usersMutex.Unlock()
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			fmt.Println("user record not found!", err)
@@ -61,7 +65,9 @@ func QueryUserByName(name string) (UserDao, bool, error) {
 // 通过用户token获取用户的UserDao结构体
 func QueryUserByToken(token string) (UserDao, bool, error) {
 	var userDao UserDao
+	usersMutex.Lock()
 	err := globalDB.Where("token = ?", token).First(&userDao).Error
+	usersMutex.Unlock()
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			// fmt.Println("user record not found!", err)
@@ -83,10 +89,12 @@ func CreateUser(username string, password string, token string) (int64, string) 
 		Token:             token,
 		TokenLastUsedTime: time.Now().Unix(),
 	}
+	usersMutex.Lock()
 	if err := globalDB.Create(&newUserDao).Error; err != nil {
 		fmt.Println("Create user failed!", err)
 		return 0, "Create user failed!"
 	}
+	usersMutex.Unlock()
 
 	newUserId := newUserDao.Id
 	return newUserId, ""
@@ -94,7 +102,9 @@ func CreateUser(username string, password string, token string) (int64, string) 
 
 // 更新token的上次使用时间
 func UpdataTokenLastUsedTime(token string) error {
+	usersMutex.Lock()
 	err := globalDB.Where("token = ?", token).First(&UserDao{}).Update("token_last_used_time", time.Now().Unix()).Error
+	usersMutex.Unlock()
 	if err != nil {
 		fmt.Println("UpdataTokenLastUsedTime(string) failed", err)
 		return err
@@ -106,7 +116,9 @@ func UpdataTokenLastUsedTime(token string) error {
 // 根据用户Id给这个用户的关注数加一
 func AddOneFollowCountById(userId int64) error {
 	var user UserDao
+	usersMutex.Lock()
 	err := globalDB.Where("id = ?", userId).First(&user).Update("follow_count", user.FollowCount+1).Error
+	usersMutex.Unlock()
 	if err != nil {
 		fmt.Println("AddOneFollowCountById(int64) failed", err)
 		return err
@@ -118,7 +130,9 @@ func AddOneFollowCountById(userId int64) error {
 // 根据用户Id给这个用户的粉丝数加一
 func AddOneFollowerCountById(userId int64) error {
 	var user UserDao
+	usersMutex.Lock()
 	err := globalDB.Where("id = ?", userId).First(&user).Update("follower_count", user.FollowerCount+1).Error
+	usersMutex.Unlock()
 	if err != nil {
 		fmt.Println("AddOneFollowerCountById(int64) failed", err)
 		return err
@@ -130,7 +144,9 @@ func AddOneFollowerCountById(userId int64) error {
 // 根据用户Id给这个用户的关注数减一
 func SubOneFollowCountById(userId int64) error {
 	var user UserDao
+	usersMutex.Lock()
 	err := globalDB.Where("id = ?", userId).First(&user).Update("follow_count", user.FollowCount-1).Error
+	usersMutex.Unlock()
 	if err != nil {
 		fmt.Println("SubOneFollowCountById(int64) failed", err)
 		return err
@@ -142,7 +158,9 @@ func SubOneFollowCountById(userId int64) error {
 // 根据用户Id给这个用户的粉丝数减一
 func SubOneFollowerCountById(userId int64) error {
 	var user UserDao
+	usersMutex.Lock()
 	err := globalDB.Where("id = ?", userId).First(&user).Update("follower_count", user.FollowerCount-1).Error
+	usersMutex.Unlock()
 	if err != nil {
 		fmt.Println("SubOneFollowerCountById(int64) failed", err)
 		return err

@@ -24,6 +24,16 @@ func FollowAction(token string, toUserId int64) string {
 		return "The number of follow count of the user has reached the maximum"
 	}
 
+	// 获取用户是否已经关注过了
+	isFollow, err := repository.QueryIsFollow(user.Id, toUserId)
+	if err != nil {
+		return "Internal Server Error! Query follow failed"
+	}
+	// 如果之前已经关注过了，直接返回
+	if isFollow {
+		return "The user has been followed"
+	}
+
 	var wg sync.WaitGroup
 	wg.Add(3)
 
@@ -73,6 +83,16 @@ func CancelFollowAction(token string, toUserId int64) string {
 	// 用户不能关注或取关自己
 	if user.Id == toUserId {
 		return "User can't build relation with himself"
+	}
+
+	// 获取用户是否已经关注过了
+	isFollow, err := repository.QueryIsFollow(user.Id, toUserId)
+	if err != nil {
+		return "Internal Server Error! Query follow failed"
+	}
+	// 如果之前没有关注过，直接返回
+	if !isFollow {
+		return "Didn't follow the user before"
 	}
 
 	var wg sync.WaitGroup

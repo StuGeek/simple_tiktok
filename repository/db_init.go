@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"sync"
 	"time"
 
 	"gorm.io/driver/mysql"
@@ -9,7 +10,14 @@ import (
 	"simple_tiktok/global"
 )
 
-var globalDB *gorm.DB // 全局数据库操作指针
+var (
+	globalDB       *gorm.DB   // 全局数据库操作指针
+	usersMutex     sync.Mutex // 操作users表时用到的锁
+	videosMutex    sync.Mutex // 操作videos表时用到的锁
+	relationsMutex sync.Mutex // 操作relations表时用到的锁
+	favoritesMutex sync.Mutex // 操作favorites表时用到的锁
+	commentsMutex  sync.Mutex // 操作comments表时用到的锁
+)
 
 // 初始化数据库，进行自动迁移或建表
 func InitDB(dbName string) {

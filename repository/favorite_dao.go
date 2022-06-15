@@ -19,9 +19,11 @@ func (FavoriteDao) TableName() string {
 
 // 根据用户Id和视频Id查询用户是否给这个视频点过赞
 func QueryIsFavorite(userId int64, videoId int64) (bool, error) {
+	favoritesMutex.Lock()
 	err := globalDB.Where("user_id = ? and video_id = ?", userId, videoId).First(&FavoriteDao{}).Error
+	favoritesMutex.Unlock()
 	if err != nil {
-		// 如果没找到视频就返回空视频列表和nil
+		// 如果没找到记录就返回false和nil
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return false, nil
 		} else {
@@ -37,7 +39,13 @@ func QueryIsFavorite(userId int64, videoId int64) (bool, error) {
 func QueryAllFavoriteVideoByUserId(userId int64) ([]VideoJoinUser, error) {
 	// 用favorite_videos表、videos表和users表查询出特定Id对应用户所点赞的视频和视频的作者
 	var videoJoinUser []VideoJoinUser
+	usersMutex.Lock()
+	videosMutex.Lock()
+	favoritesMutex.Lock()
 	err := globalDB.Model(&FavoriteDao{}).Where("favorites.user_id = ?", userId).Select("videos.id, videos.author_id, videos.play_url, videos.cover_url, videos.favorite_count, videos.comment_count, videos.title, users.name").Joins("inner join videos on videos.id = favorites.video_id").Joins("inner join users on users.id = videos.author_id").Scan(&videoJoinUser).Error
+	favoritesMutex.Unlock()
+	videosMutex.Unlock()
+	usersMutex.Unlock()
 	if err != nil {
 		// 如果没找到视频就返回空视频列表和nil
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -54,7 +62,9 @@ func QueryAllFavoriteVideoByUserId(userId int64) ([]VideoJoinUser, error) {
 
 // 向favorites表中插入一条点赞记录
 func CreateFavorite(userId int64, videoId int64) error {
+	favoritesMutex.Lock()
 	err := globalDB.Create(&FavoriteDao{UserId: userId, VideoId: videoId}).Error
+	favoritesMutex.Unlock()
 	if err != nil {
 		fmt.Println("CreateFavorite failed", err)
 		return err
@@ -65,7 +75,9 @@ func CreateFavorite(userId int64, videoId int64) error {
 
 // 从favorites表中删除一条点赞记录
 func DeleteFavorite(userId int64, videoId int64) error {
+	favoritesMutex.Lock()
 	err := globalDB.Where("user_id = ? and video_id = ?", userId, videoId).Delete(&FavoriteDao{}).Error
+	favoritesMutex.Unlock()
 	if err != nil {
 		fmt.Println("DeleteFavorite failed", err)
 		return err
